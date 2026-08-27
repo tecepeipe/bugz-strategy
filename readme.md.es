@@ -31,7 +31,7 @@ En tu turno puedes **colocar un bicho** de tu reserva o **mover uno de tus bicho
 | 🐜 Hormiga soldado | Se desliza cualquier distancia por el exterior del enjambre |
 | 🦟 Mosquito | Copia el movimiento (o la habilidad de la cochinilla) de cualquier pieza que toque |
 | 🐞 Mariquita | 2 hexágonos sobre el enjambre y luego 1 de vuelta al tablero |
-| 🪳 Cochinilla | No puede moverse; mueve una pieza adyacente 2 hexágonos y la deja aturdida para el siguiente turno del rival |
+| 🪳 Cochinilla | Se mueve 1 hexágono como la abeja reina, o levanta una pieza adyacente y la coloca en cualquier hexágono vacío junto a ella; la pieza movida queda aturdida para el siguiente turno del rival |
 
 ## Modos de juego
 

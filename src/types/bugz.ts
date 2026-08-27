@@ -37,7 +37,7 @@ export const BUG_DEFINITIONS: Record<BugType, BugInfo> = {
   BEETLE: {
     type: 'BEETLE',
     name: 'Beetle',
-    emoji: '🐜',
+    emoji: '🪲',
     description: 'Moves 1 space on ground or climbs on top of adjacent pieces to pin them.',
     count: 2,
   },
@@ -74,7 +74,7 @@ export const BUG_DEFINITIONS: Record<BugType, BugInfo> = {
   PILLBUG: {
     type: 'PILLBUG',
     name: 'Pillbug',
-    emoji: '💊',
+    emoji: '🪳',
     description: 'Moves 1 space OR picks up an adjacent unstacked piece and moves it to another adjacent empty space.',
     count: 1,
     isExpansion: true,

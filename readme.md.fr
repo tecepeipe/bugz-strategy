@@ -31,7 +31,7 @@
 | 🐜 Fourmi soldat | Glisse n'importe quelle distance le long de l'extérieur de l'essaim |
 | 🦟 Moustique | Copie le déplacement (ou l'aptitude du cloporte) de toute pièce qu'il touche |
 | 🐞 Coccinelle | 2 hexagones au-dessus de l'essaim, puis 1 de retour sur le plateau |
-| 🪳 Cloporte | Ne peut pas se déplacer ; déplace une pièce adjacente de 2 hexagones et l'étourdit pour le tour adverse suivant |
+| 🪳 Cloporte | Se déplace d'1 hexagone comme la reine, ou ramasse une pièce adjacente et la place dans n'importe quel hexagone vide à côté ; la pièce déplacée est étourdie pour le tour adverse suivant |
 
 ## Modes de jeu
 

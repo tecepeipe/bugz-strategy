@@ -270,6 +270,10 @@ export function getValidMovesForPiece(
   const topPiece = stack[stack.length - 1];
   if (topPiece.player !== player) return [];
 
+  // Rule: A piece moved by a Pillbug special action is stunned and may not
+  // move on the opponent's immediately following turn.
+  if (topPiece.id === lastMovedPieceId) return [];
+
   // Rule: Must not break One-Swarm
   if (!canRemovePieceWithoutBreakingSwarm(board, fromHex)) {
     return [];
@@ -555,6 +559,11 @@ export function getPillbugSpecialTargets(
   const stack = board.get(hexKey(pillbugHex.q, pillbugHex.r));
   if (!stack || stack.length === 0) return [];
 
+  // Official rule: the Pillbug cannot move a piece if the Pillbug itself was
+  // moved in the most recent turn.
+  const pillbugTop = stack[stack.length - 1];
+  if (pillbugTop.id === lastMovedPieceId) return [];
+
   // Empty spaces adjacent to Pillbug
   const adjacentHexes = getAllNeighbors(pillbugHex);
   const emptyAdjacentHexes = adjacentHexes.filter(h => !isOccupied(board, h));
@@ -576,13 +585,25 @@ export function getPillbugSpecialTargets(
         // Rule: Removing targetPiece must NOT break the One-Swarm rule!
         if (!canRemovePieceWithoutBreakingSwarm(board, adjHex)) continue;
 
-        // Gate check: Pillbug picking up piece must have clearance to move over Pillbug
-        // (Must be able to pass above Pillbug to empty space)
-        options.push({
-          targetHex: adjHex,
-          piece: targetPiece,
-          destinationHexes: emptyAdjacentHexes,
+        // Official "Beetle gate" rule: the piece is lifted over the Pillbug to
+        // reach its destination; a gate hex (a common neighbor of the origin
+        // and destination other than the Pillbug's own hex) with a stack height
+        // of 2+ blocks the passage.
+        const reachableDestinations = emptyAdjacentHexes.filter(destHex => {
+          const gateHexes = getCommonNeighbors(adjHex, destHex).filter(
+            g => !isSameHex(g, pillbugHex)
+          );
+          const gateBlocked = gateHexes.some(g => getStackHeight(board, g) >= 2);
+          return !gateBlocked;
         });
+
+        if (reachableDestinations.length > 0) {
+          options.push({
+            targetHex: adjHex,
+            piece: targetPiece,
+            destinationHexes: reachableDestinations,
+          });
+        }
       }
     }
   }
@@ -606,8 +627,8 @@ export function getPlayerAllLegalActions(
   // 1. PLACEMENT ACTIONS
   const validPlacements = getValidPlacements(board, player, turnCountP);
 
-  // If turn 4 and Queen not placed, ONLY Queen can be placed!
-  if (turnCountP === 4 && !queenPlaced) {
+  // If turn 4 or later and Queen not placed, ONLY the Queen can be placed!
+  if (turnCountP >= 4 && !queenPlaced) {
     const queenPiece = reserve.find(p => p.type === 'QUEEN');
     if (queenPiece) {
       for(const hex of validPlacements) {
@@ -620,7 +641,7 @@ export function getPlayerAllLegalActions(
         });
       }
     }
-    return actions; // Only queen placements allowed on turn 4 if queen not placed
+    return actions; // Only queen placements allowed on turn 4+ if queen not placed
   }
 
   // Otherwise, if player can place from reserve:

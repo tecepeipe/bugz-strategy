@@ -505,6 +505,10 @@ fun getValidMovesForPiece(
     val topPiece = stack.last()
     if (topPiece.player != player) return emptyList()
 
+    // A piece moved by a Pillbug special action is stunned and may not move
+    // on the opponent's immediately following turn.
+    if (topPiece.id == lastMovedPieceId) return emptyList()
+
     if (!canRemovePieceWithoutBreakingSwarm(board, fromHex)) {
         return emptyList()
     }
@@ -531,6 +535,11 @@ fun getPillbugSpecialTargets(
     val stack = board[pillbugHex.key()]
     if (stack.isNullOrEmpty()) return emptyList()
 
+    // Official rule: the Pillbug cannot move a piece if the Pillbug itself was
+    // moved in the most recent turn.
+    val pillbugTop = stack.last()
+    if (pillbugTop.id == lastMovedPieceId) return emptyList()
+
     val emptyAdjacentHexes = pillbugHex.getNeighbors().filter { !isOccupied(board, it) }
     if (emptyAdjacentHexes.isEmpty()) return emptyList()
 
@@ -545,13 +554,24 @@ fun getPillbugSpecialTargets(
                 if (targetPiece.id == lastMovedPieceId) continue
                 if (!canRemovePieceWithoutBreakingSwarm(board, adjHex)) continue
 
-                options.add(
-                    PillbugTargetOption(
-                        targetHex = adjHex,
-                        piece = targetPiece,
-                        destinationHexes = emptyAdjacentHexes
+                // Official "Beetle gate" rule: the piece is lifted over the
+                // Pillbug to reach its destination; a gate hex (a common
+                // neighbor of the origin and destination other than the
+                // Pillbug's own hex) with a stack height of 2+ blocks passage.
+                val reachableDestinations = emptyAdjacentHexes.filter { destHex ->
+                    val gateHexes = getCommonNeighbors(adjHex, destHex).filter { it != pillbugHex }
+                    !gateHexes.any { getStackHeight(board, it) >= 2 }
+                }
+
+                if (reachableDestinations.isNotEmpty()) {
+                    options.add(
+                        PillbugTargetOption(
+                            targetHex = adjHex,
+                            piece = targetPiece,
+                            destinationHexes = reachableDestinations
+                        )
                     )
-                )
+                }
             }
         }
     }
@@ -572,7 +592,7 @@ fun getPlayerAllLegalActions(
 
     val validPlacements = getValidPlacements(board, player, turnCountP)
 
-    if (turnCountP == 4 && !queenPlaced) {
+    if (turnCountP >= 4 && !queenPlaced) {
         val queenPiece = reserve.firstOrNull { it.type == BugType.QUEEN }
         if (queenPiece != null) {
             for (hex in validPlacements) {
@@ -2209,9 +2229,9 @@ fun RulesDialog(onClose: () -> Unit) {
                     fontSize = 13.sp
                 )
                 Text(
-                    "🪳 Pillbug — may not move itself, but it can move an adjacent enemy or friendly " +
-                        "piece 2 hexes: up onto itself, then down into an adjacent empty space. The " +
-                        "moved piece is stunned and cannot move on the opponent's next turn.",
+                    "🪳 Pillbug — moves 1 space like the Queen Bee, or may pick up an adjacent " +
+                        "unstacked piece (friend or foe) and place it in any empty space adjacent to it. " +
+                        "The moved piece is stunned and cannot move on the opponent's next turn.",
                     fontSize = 13.sp
                 )
             }

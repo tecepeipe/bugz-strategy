@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   AxialHex,
   BoardState,
@@ -24,6 +24,7 @@ import {
   getValidMovesForPiece,
   getValidPlacements,
   isQueenPlaced,
+  PillbugTargetOption,
 } from './logic/bugzRules';
 import { computeAIMove } from './logic/bugzAI';
 
@@ -84,8 +85,12 @@ function App() {
   const [validDestinations, setValidDestinations] = useState<AxialHex[]>([]);
   const [pillbugTargetHex, setPillbugTargetHex] = useState<AxialHex | null>(null);
   const [pillbugDestinations, setPillbugDestinations] = useState<AxialHex[]>([]);
+  const [pillbugTargets, setPillbugTargets] = useState<PillbugTargetOption[]>([]);
+  const [pillbugTargetIdx, setPillbugTargetIdx] = useState<number>(0);
   const [isAITurn, setIsAITurn] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // Identifies the current match; a new game invalidates any pending AI move.
+  const gameIdRef = useRef(0);
 
   // --- MODALS ---
   const [isNewGameModalOpen, setIsNewGameModalOpen] = useState<boolean>(true);
@@ -133,10 +138,13 @@ function App() {
     setValidDestinations([]);
     setPillbugTargetHex(null);
     setPillbugDestinations([]);
+    setPillbugTargets([]);
+    setPillbugTargetIdx(0);
     setIsAITurn(false);
     setIsNewGameModalOpen(false);
     setIsGameOverModalOpen(false);
     setToastMessage(null);
+    gameIdRef.current += 1;
   }, []);
 
   // Save game snapshot for Unlimited Undo
@@ -203,6 +211,8 @@ function App() {
     setValidDestinations([]);
     setPillbugTargetHex(null);
     setPillbugDestinations([]);
+    setPillbugTargets([]);
+    setPillbugTargetIdx(0);
   }, [snapshots, isAITurn, settings.mode]);
 
   // Check Game Status after move
@@ -255,6 +265,10 @@ function App() {
   }, [currentPlayer, board, p1Reserve, p2Reserve, turnCountP1, turnCountP2, lastMovedPieceId, settings.expansions, gameStatus.isGameOver]);
 
   // --- AI MOVE TRIGGER ---
+  // NOTE: `isAITurn` is intentionally NOT in the dependency array. Setting it
+  // to true here would re-run the effect and its cleanup would cancel the AI
+  // timer before it ever fires, leaving the AI stuck on "thinking" forever
+  // (the flag is only read from the render closure as a re-entry guard).
   useEffect(() => {
     if (
       settings.mode === 'AI' &&
@@ -262,36 +276,58 @@ function App() {
       !gameStatus.isGameOver &&
       !isAITurn
     ) {
+      // If the AI has no legal actions, the forced-pass effect handles the
+      // turn switch — do not set isAITurn, otherwise its timer cleanup would
+      // run when that effect flips the player and the lock would never release.
+      const aiLegal = getPlayerAllLegalActions(
+        board,
+        2,
+        p2Reserve,
+        turnCountP2,
+        lastMovedPieceId,
+        settings.expansions
+      );
+      if (aiLegal.length === 0) return;
+
       setIsAITurn(true);
+      const gid = gameIdRef.current;
 
       const aiTimer = setTimeout(() => {
-        const aiAction = computeAIMove(
-          board,
-          2,
-          p2Reserve,
-          p1Reserve,
-          turnCountP2,
-          turnCountP1,
-          settings.aiDifficulty,
-          lastMovedPieceId,
-          settings.expansions
-        );
-
-        if (aiAction) {
-          executeMove(aiAction);
-        } else {
-          // AI forced pass
-          setToastMessage(t('toastAiPass'));
-          setTimeout(() => setToastMessage(null), 3000);
-          setCurrentPlayer(1);
+        // Guard: the match may have been restarted while the AI was thinking.
+        if (gameIdRef.current !== gid) {
+          setIsAITurn(false);
+          return;
         }
+        try {
+          const aiAction = computeAIMove(
+            board,
+            2,
+            p2Reserve,
+            p1Reserve,
+            turnCountP2,
+            turnCountP1,
+            settings.aiDifficulty,
+            lastMovedPieceId,
+            settings.expansions
+          );
 
-        setIsAITurn(false);
+          if (aiAction) {
+            executeMove(aiAction);
+          } else {
+            // AI forced pass
+            setToastMessage(t('toastAiPass'));
+            setTimeout(() => setToastMessage(null), 3000);
+            setCurrentPlayer(1);
+          }
+        } finally {
+          // Always release the thinking lock, even if a move throws.
+          setIsAITurn(false);
+        }
       }, 600);
 
       return () => clearTimeout(aiTimer);
     }
-  }, [currentPlayer, settings, board, p1Reserve, p2Reserve, turnCountP1, turnCountP2, lastMovedPieceId, gameStatus.isGameOver, isAITurn]);
+  }, [currentPlayer, settings, board, p1Reserve, p2Reserve, turnCountP1, turnCountP2, lastMovedPieceId, gameStatus.isGameOver]);
 
   // Execute a validated MoveAction
   const executeMove = (action: MoveAction) => {
@@ -367,7 +403,18 @@ function App() {
     setBoard(nextBoard);
     setP1Reserve(nextP1Res);
     setP2Reserve(nextP2Res);
-    setLastMovedPieceId(action.pieceId);
+
+    // Record the piece that actually moved/placed so it is "stunned" (cannot
+    // move) on the opponent's next turn. For a pillbug special the moved piece
+    // is the target it picked up, not the pillbug itself.
+    let actuallyMovedId: string | null = null;
+    if (action.type === 'PILLBUG_SPECIAL' && action.pillbugTargetHex) {
+      const moved = nextBoard.get(hexKey(action.toHex.q, action.toHex.r));
+      actuallyMovedId = moved && moved.length > 0 ? moved[moved.length - 1].id : action.pieceId;
+    } else {
+      actuallyMovedId = action.pieceId;
+    }
+    setLastMovedPieceId(actuallyMovedId);
 
     const logEntry: MoveLogEntry = {
       turnNumber: currentPlayer === 1 ? turnCountP1 : turnCountP2,
@@ -386,6 +433,8 @@ function App() {
     setValidDestinations([]);
     setPillbugTargetHex(null);
     setPillbugDestinations([]);
+    setPillbugTargets([]);
+    setPillbugTargetIdx(0);
 
     // Update Turn Counts & Switch Player
     if (currentPlayer === 1) {
@@ -454,16 +503,30 @@ function App() {
       const effectiveTypes = getEffectiveBugTypes(board, hex, topPiece, settings.expansions);
       if (effectiveTypes.includes('PILLBUG')) {
         const pbTargets = getPillbugSpecialTargets(board, hex, currentPlayer, lastMovedPieceId);
+        setPillbugTargets(pbTargets);
+        setPillbugTargetIdx(0);
         if (pbTargets.length > 0) {
-          // If Pillbug selected, highlight target options
+          // Highlight the first eligible target (the player can cycle to the
+          // others by tapping the highlighted target again).
           setPillbugTargetHex(pbTargets[0].targetHex);
           setPillbugDestinations(pbTargets[0].destinationHexes);
         }
       } else {
+        setPillbugTargets([]);
+        setPillbugTargetIdx(0);
         setPillbugTargetHex(null);
         setPillbugDestinations([]);
       }
     }
+  };
+
+  // Cycle to the next eligible Pillbug target when the highlighted one is tapped.
+  const handleCyclePillbugTarget = () => {
+    if (pillbugTargets.length === 0) return;
+    const nextIdx = (pillbugTargetIdx + 1) % pillbugTargets.length;
+    setPillbugTargetIdx(nextIdx);
+    setPillbugTargetHex(pillbugTargets[nextIdx].targetHex);
+    setPillbugDestinations(pillbugTargets[nextIdx].destinationHexes);
   };
 
   // Destination selected to execute move or placement
@@ -637,6 +700,7 @@ function App() {
             pillbugDestinations={pillbugDestinations}
             onSelectHex={handleSelectHex}
             onSelectDestination={handleSelectDestination}
+            onSelectPillbugTarget={handleCyclePillbugTarget}
             currentPlayer={currentPlayer}
             isAITurn={isAITurn}
             lastMovedHex={lastMovedHex}

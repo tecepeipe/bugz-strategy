@@ -3,16 +3,37 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+// Shared upload key + quality tooling.
+def props = new Properties()
+rootProject.file('local.properties').withInputStream { props.load(it) }
+def toolsDir = props.getProperty('android-tools.dir')
+
 android {
     namespace 'com.tecepeipe.bugzstrategy'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId 'com.tecepeipe.bugzstrategy'
         minSdk 23
-        targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        targetSdk 35
+        versionCode 3
+        versionName '1.1'
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("$toolsDir/upload-release.keystore")
+            storePassword 'tecepeipe123'
+            keyAlias 'upload'
+            keyPassword 'tecepeipe123'
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+        }
     }
 
     buildFeatures {
@@ -35,9 +56,6 @@ android {
 
 // Shared quality tooling (detekt + spotless + JUnit), see
 // android-tools/quality/quality.gradle.
-def props = new Properties()
-rootProject.file('local.properties').withInputStream { props.load(it) }
-def toolsDir = props.getProperty('android-tools.dir')
 apply from: "$toolsDir/quality/quality.gradle"
 
 dependencies {

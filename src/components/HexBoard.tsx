@@ -268,7 +268,8 @@ export const HexBoard: React.FC<HexBoardProps> = ({
                     onSelectDestination(hex);
                   } else if (isOccupiedTile) {
                     if (pillbugTargetHex && onSelectPillbugTarget && isSameHex(pillbugTargetHex, hex)) {
-                      onSelectHex(hex);
+                      // Tapping the highlighted pillbug target cycles to the next one.
+                      onSelectPillbugTarget(hex);
                     } else {
                       onSelectHex(hex);
                     }

@@ -151,9 +151,9 @@ object I18n {
             "insectMosquito" to "🦟 Mosquito — copies the movement (or pillbug ability) of any piece it touches.",
             "insectLadybug" to "🐞 Ladybug — moves exactly 2 hexes on top of the swarm, then 1 hex back " +
                 "down to the board (may land on empty board hexes).",
-            "insectPillbug" to "🪳 Pillbug — may not move itself, but it can move an adjacent enemy or " +
-                "friendly piece 2 hexes: up onto itself, then down into an adjacent empty space. The " +
-                "moved piece is stunned and cannot move on the opponent's next turn.",
+            "insectPillbug" to "🪳 Pillbug — moves 1 space like the Queen Bee, or may pick up an adjacent " +
+                "unstacked piece (friend or foe) and place it in any empty space adjacent to it. The moved " +
+                "piece is stunned and cannot move on the opponent's next turn.",
             "overDrawTitle" to "Draw!",
             "overWinTitle" to "Player {n} Wins!",
             "overDrawBody" to "Both Queens are surrounded. It's a draw!",
@@ -229,8 +229,8 @@ object I18n {
             "insectMosquito" to "🦟 Mosquito — copia el movimiento (o la habilidad de la cochinilla) de cualquier pieza que toque.",
             "insectLadybug" to "🐞 Mariquita — se mueve exactamente 2 hexágonos sobre el enjambre y luego " +
                 "1 hacia abajo al tablero (puede aterrizar en hexágonos vacíos).",
-            "insectPillbug" to "🪳 Cochinilla — no puede moverse, pero puede mover una pieza adyacente " +
-                "(aliada o enemiga) 2 hexágonos: primero sobre sí misma y luego a un espacio vacío " +
+            "insectPillbug" to "🪳 Cochinilla — se mueve 1 espacio como la abeja reina, o puede levantar una " +
+                "pieza adyacente sin apilar (aliada o enemiga) y colocarla en cualquier espacio vacío " +
                 "adyacente. La pieza movida queda aturdida y no puede moverse en el siguiente turno del rival.",
             "overDrawTitle" to "¡Empate!",
             "overWinTitle" to "¡Gana el Jugador {n}!",
@@ -307,8 +307,8 @@ object I18n {
             "insectMosquito" to "🦟 Pernilongo — copia o movimento (ou a habilidade do bicho-bola) de qualquer peça que toque.",
             "insectLadybug" to "🐞 Joaninha — move exatamente 2 hexágonos sobre o enxame e depois 1 de " +
                 "volta ao tabuleiro (pode pousar em hexágonos vazios).",
-            "insectPillbug" to "🪳 Bicho-bola — não pode se mover, mas pode mover uma peça adjacente " +
-                "(aliada ou inimiga) 2 hexágonos: primeiro sobre si mesma e depois para um espaço vazio " +
+            "insectPillbug" to "🪳 Bicho-bola — move-se 1 espaço como a abelha rainha ou pode levantar uma " +
+                "peça adjacente sem empilhar (aliada ou inimiga) e colocá-la em qualquer espaço vazio " +
                 "adjacente. A peça movida fica atordoada e não pode se mover no próximo turno do oponente.",
             "overDrawTitle" to "Empate!",
             "overWinTitle" to "Jogador {n} venceu!",
@@ -386,9 +386,9 @@ object I18n {
             "insectMosquito" to "🦟 Moustique — copie le déplacement (ou l’aptitude du cloporte) de toute pièce qu’il touche.",
             "insectLadybug" to "🐞 Coccinelle — se déplace d’exactement 2 hexagones par-dessus l’essaim, " +
                 "puis redescend d’1 hexagone sur le plateau (peut atterrir sur des cases vides).",
-            "insectPillbug" to "🪳 Cloporte — ne peut pas se déplacer, mais peut déplacer une pièce " +
-                "adjacente (alliée ou ennemie) de 2 hexagones : d’abord sur lui-même, puis dans un " +
-                "espace vide adjacent. La pièce déplacée est étourdie et ne peut pas bouger au tour " +
+            "insectPillbug" to "🪳 Cloporte — se déplace d’1 case comme la reine des abeilles, ou peut " +
+                "ramasser une pièce adjacente non empilée (alliée ou ennemie) et la placer dans n’importe " +
+                "quelle case vide adjacente. La pièce déplacée est étourdie et ne peut pas bouger au tour " +
                 "suivant de l’adversaire.",
             "overDrawTitle" to "Égalité !",
             "overWinTitle" to "Le Joueur {n} gagne !",
@@ -466,9 +466,9 @@ object I18n {
             "insectMosquito" to "🦟 Mücke — kopiert die Bewegung (oder Assel-Fähigkeit) jeder Kachel, die sie berührt.",
             "insectLadybug" to "🐞 Marienkäfer — zieht genau 2 Felder über dem Schwarm und dann 1 Feld " +
                 "zurück auf das Brett (darf auf leere Felder landen).",
-            "insectPillbug" to "🪳 Assel — kann sich selbst nicht bewegen, aber eine benachbarte Kachel " +
-                "(feindlich oder freundlich) 2 Felder bewegen: erst auf sich, dann in einen benachbarten " +
-                "leeren Raum. Die bewegte Kachel ist benommen und kann im nächsten Zug des Gegners nicht ziehen.",
+            "insectPillbug" to "🪳 Assel — zieht 1 Feld wie die Bienenkönigin oder kann eine benachbarte, " +
+                "nicht gestapelte Kachel (feindlich oder freundlich) aufheben und auf ein beliebiges leeres " +
+                "Feld daneben setzen. Die bewegte Kachel ist benommen und kann im nächsten Zug des Gegners nicht ziehen.",
             "overDrawTitle" to "Unentschieden!",
             "overWinTitle" to "Spieler {n} gewinnt!",
             "overDrawBody" to "Beide Königinnen sind eingekreist. Unentschieden!",
@@ -539,7 +539,7 @@ object I18n {
             "insectAnt" to "🐜 兵隊アリ — ハイブの外周に沿って好きなだけ滑るように移動できます。",
             "insectMosquito" to "🦟 蚊 — 接触している駒の移動（またはダンゴムシの能力）をコピーします。",
             "insectLadybug" to "🐞 テントウムシ — ハイブの上をちょうど2マス移動し、その後1マス盤面に降ります（空きマスに着地可）。",
-            "insectPillbug" to "🪳 ダンゴムシ — 自分は動けませんが、隣接する駒（敵味方どちらでも）を2マス動かせます: まず自分の上へ、そして隣接する空きマスへ。動かされた駒はスタンし、相手の次のターンは動けません。",
+            "insectPillbug" to "🪳 ダンゴムシ — 女王バチと同じく1マス動けるか、隣接する積み重なっていない駒（敵味方どちらでも）を持ち上げ、その隣接する任意の空きマスへ置けます。動かされた駒はスタンし、相手の次のターンは動けません。",
             "overDrawTitle" to "引き分け！",
             "overWinTitle" to "プレイヤー{n}の勝利！",
             "overDrawBody" to "両方の女王が囲まれました。引き分け！",
@@ -608,7 +608,7 @@ object I18n {
             "insectAnt" to "🐜 兵蚁 — 可沿蜂群外部滑动任意数量的格子。",
             "insectMosquito" to "🦟 蚊子 — 复制与之接触的任何棋子的走法（或潮虫能力）。",
             "insectLadybug" to "🐞 瓢虫 — 在蜂群上方恰好移动2格，然后向下1格落回棋盘（可落在空棋盘格上）。",
-            "insectPillbug" to "🪳 潮虫 — 自身不能移动，但可将相邻的棋子（敌我均可）移动2格：先移到自身上方，再移到相邻空格。被移动的棋子陷入眩晕，对手下一回合不能移动。",
+            "insectPillbug" to "🪳 潮虫 — 可像蜂后一样移动1格，或拿起一枚相邻且未堆叠的棋子（敌我均可），放到其相邻的任意空格。被移动的棋子陷入眩晕，对手下一回合不能移动。",
             "overDrawTitle" to "平局！",
             "overWinTitle" to "玩家{n}获胜！",
             "overDrawBody" to "双方蜂后都被围住。平局！",
@@ -1087,6 +1087,10 @@ fun getValidMovesForPiece(
     val topPiece = stack.last()
     if (topPiece.player != player) return emptyList()
 
+    // A piece moved by a Pillbug special action is stunned and may not move
+    // on the opponent's immediately following turn.
+    if (topPiece.id == lastMovedPieceId) return emptyList()
+
     if (!canRemovePieceWithoutBreakingSwarm(board, fromHex)) {
         return emptyList()
     }
@@ -1113,6 +1117,11 @@ fun getPillbugSpecialTargets(
     val stack = board[pillbugHex.key()]
     if (stack.isNullOrEmpty()) return emptyList()
 
+    // Official rule: the Pillbug cannot move a piece if the Pillbug itself was
+    // moved in the most recent turn.
+    val pillbugTop = stack.last()
+    if (pillbugTop.id == lastMovedPieceId) return emptyList()
+
     val emptyAdjacentHexes = pillbugHex.getNeighbors().filter { !isOccupied(board, it) }
     if (emptyAdjacentHexes.isEmpty()) return emptyList()
 
@@ -1127,13 +1136,24 @@ fun getPillbugSpecialTargets(
                 if (targetPiece.id == lastMovedPieceId) continue
                 if (!canRemovePieceWithoutBreakingSwarm(board, adjHex)) continue
 
-                options.add(
-                    PillbugTargetOption(
-                        targetHex = adjHex,
-                        piece = targetPiece,
-                        destinationHexes = emptyAdjacentHexes,
-                    ),
-                )
+                // Official "Beetle gate" rule: the piece is lifted over the
+                // Pillbug to reach its destination; a gate hex (a common
+                // neighbor of the origin and destination other than the
+                // Pillbug's own hex) with a stack height of 2+ blocks passage.
+                val reachableDestinations = emptyAdjacentHexes.filter { destHex ->
+                    val gateHexes = getCommonNeighbors(adjHex, destHex).filter { it != pillbugHex }
+                    !gateHexes.any { getStackHeight(board, it) >= 2 }
+                }
+
+                if (reachableDestinations.isNotEmpty()) {
+                    options.add(
+                        PillbugTargetOption(
+                            targetHex = adjHex,
+                            piece = targetPiece,
+                            destinationHexes = reachableDestinations,
+                        ),
+                    )
+                }
             }
         }
     }
@@ -1154,7 +1174,7 @@ fun getPlayerAllLegalActions(
 
     val validPlacements = getValidPlacements(board, player, turnCountP)
 
-    if (turnCountP == 4 && !queenPlaced) {
+    if (turnCountP >= 4 && !queenPlaced) {
         val queenPiece = reserve.firstOrNull { it.type == BugType.QUEEN }
         if (queenPiece != null) {
             for (hex in validPlacements) {
@@ -2034,6 +2054,8 @@ fun BugzApp() {
     var validDestinations by remember { mutableStateOf<List<AxialHex>>(emptyList()) }
     var pillbugTargetHex by remember { mutableStateOf<AxialHex?>(null) }
     var pillbugDestinations by remember { mutableStateOf<List<AxialHex>>(emptyList()) }
+    var pillbugTargetList by remember { mutableStateOf<List<PillbugTargetOption>>(emptyList()) }
+    var pillbugTargetIdx by remember { mutableStateOf(0) }
     var lastMovedHex by remember { mutableStateOf<AxialHex?>(null) }
     var isAITurn by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }
@@ -2047,6 +2069,8 @@ fun BugzApp() {
         validDestinations = emptyList()
         pillbugTargetHex = null
         pillbugDestinations = emptyList()
+        pillbugTargetList = emptyList()
+        pillbugTargetIdx = 0
     }
 
     fun applyForcedPasses() {
@@ -2220,7 +2244,7 @@ fun BugzApp() {
     }
 
     fun queenDue(): Boolean {
-        return engine.turnCountFor(engine.currentPlayer) == 4 && !engine.isQueenPlaced(engine.currentPlayer)
+        return engine.turnCountFor(engine.currentPlayer) >= 4 && !engine.isQueenPlaced(engine.currentPlayer)
     }
 
     fun handleReserveSelect(bug: BugType) {
@@ -2251,6 +2275,16 @@ fun BugzApp() {
 
         val isDest = validDestinations.any { it.q == hex.q && it.r == hex.r }
         val isPillbugDest = pillbugDestinations.any { it.q == hex.q && it.r == hex.r }
+        val isPillbugTarget = pillbugTargetHex?.let { it.q == hex.q && it.r == hex.r } == true
+
+        // Tapping the highlighted pillbug target cycles to the next eligible one.
+        if (isPillbugTarget && pillbugTargetList.size > 1) {
+            val next = (pillbugTargetIdx + 1) % pillbugTargetList.size
+            pillbugTargetIdx = next
+            pillbugTargetHex = pillbugTargetList[next].targetHex
+            pillbugDestinations = pillbugTargetList[next].destinationHexes
+            return
+        }
 
         // Placement
         if (selectedReserveBug != null && isDest) {
@@ -2320,6 +2354,8 @@ fun BugzApp() {
             val effectiveTypes = engine.effectiveTypes(hex, topPiece)
             if (effectiveTypes.contains(BugType.PILLBUG)) {
                 val targets = engine.pillbugTargets(hex)
+                pillbugTargetList = targets
+                pillbugTargetIdx = 0
                 if (targets.isNotEmpty()) {
                     pillbugTargetHex = targets[0].targetHex
                     pillbugDestinations = targets[0].destinationHexes
@@ -2328,6 +2364,8 @@ fun BugzApp() {
                     pillbugDestinations = emptyList()
                 }
             } else {
+                pillbugTargetList = emptyList()
+                pillbugTargetIdx = 0
                 pillbugTargetHex = null
                 pillbugDestinations = emptyList()
             }

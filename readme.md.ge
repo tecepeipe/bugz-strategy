@@ -31,7 +31,7 @@ In deinem Zug **platzierst du ein Insekt** aus deiner Reserve oder **bewegst ein
 | 🐜 Soldatenameise | Gleitet beliebig weit entlang der Außenseite des Schwarms |
 | 🦟 Mücke | Kopiert die Bewegung (oder Assel-Fähigkeit) jeder berührten Kachel |
 | 🐞 Marienkäfer | 2 Felder über dem Schwarm, dann 1 zurück aufs Brett |
-| 🪳 Assel | Kann sich selbst nicht bewegen; bewegt eine benachbarte Kachel 2 Felder und benommen sie für den nächsten Zug des Gegners |
+| 🪳 Assel | Zieht 1 Feld wie die Bienenkönigin oder hebt eine benachbarte Kachel auf und setzt sie auf ein beliebiges leeres Feld daneben; die bewegte Kachel ist für den nächsten Zug des Gegners benommen |
 
 ## Spielmodi
 

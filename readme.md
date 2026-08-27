@@ -31,7 +31,7 @@ On your turn you either **place one bug** from your reserve or **move one of you
 | 🐜 Soldier Ant | Slides any distance along the outside of the swarm |
 | 🦟 Mosquito | Copies the movement (or pillbug ability) of any piece it touches |
 | 🐞 Ladybug | 2 hexes on top of the swarm, then 1 hex back down |
-| 🪳 Pillbug | Cannot move itself; moves an adjacent piece 2 hexes and stuns it for the opponent's next turn |
+| 🪳 Pillbug | Moves 1 hex like the Queen Bee, or picks up an adjacent piece and places it in any empty hex next to it; the moved piece is stunned for the opponent's next turn |
 
 ## Game Modes
 

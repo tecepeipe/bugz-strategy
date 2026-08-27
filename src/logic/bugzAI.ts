@@ -77,13 +77,11 @@ function computeEasyMove(
   legalActions: MoveAction[],
   turnCountAI: number
 ): MoveAction {
-  // If Queen not placed and turn is 3 or 4, prioritize Queen placement
-  if (!isQueenPlaced(board, aiPlayer)) {
+  // Play the queen when it is due (by the 4th turn) if the AI forgot to place it earlier.
+  if (!isQueenPlaced(board, aiPlayer) && turnCountAI >= 3) {
     const queenActions = legalActions.filter(a => a.bugType === 'QUEEN');
     if (queenActions.length > 0) {
-      if (turnCountAI >= 3 || Math.random() < 0.6) {
-        return queenActions[Math.floor(Math.random() * queenActions.length)];
-      }
+      return queenActions[Math.floor(Math.random() * queenActions.length)];
     }
   }
 
@@ -119,13 +117,15 @@ function computeMediumMove(
       aiPlayer,
       nextAIReserve,
       nextHumanReserve,
+      turnCountAI,
+      turnCountHuman,
       expansions
     );
 
-    if (score > bestScore) {
+    if (score > bestScore + 1e-9) {
       bestScore = score;
       bestActions = [action];
-    } else if (score === bestScore) {
+    } else if (Math.abs(score - bestScore) <= 1e-9) {
       bestActions.push(action);
     }
   }
@@ -180,7 +180,7 @@ function computeHardMinimaxMove(
       nextHumanReserve,
       turnCountAI + 1,
       turnCountHuman,
-      action.pieceId,
+      actuallyMovedPieceId(board, action),
       expansions
     );
 
@@ -217,7 +217,7 @@ function minimax(
   }
 
   if (depth === 0) {
-    return evaluateBoard(board, aiPlayer, aiReserve, humanReserve, expansions);
+    return evaluateBoard(board, aiPlayer, aiReserve, humanReserve, turnAI, turnHuman, expansions);
   }
 
   const currentPlayer = isMaximizing ? aiPlayer : humanPlayer;
@@ -276,7 +276,7 @@ function minimax(
         nextHumanReserve,
         turnAI + 1,
         turnHuman,
-        action.pieceId,
+        actuallyMovedPieceId(board, action),
         expansions
       );
 
@@ -308,7 +308,7 @@ function minimax(
         nextHumanReserve,
         turnAI,
         turnHuman + 1,
-        action.pieceId,
+        actuallyMovedPieceId(board, action),
         expansions
       );
 
@@ -327,36 +327,54 @@ function evaluateBoard(
   aiPlayer: Player,
   aiReserve: Piece[],
   humanReserve: Piece[],
+  turnAI: number,
+  turnHuman: number,
   expansions: ExpansionsConfig
 ): number {
   const humanPlayer: Player = aiPlayer === 1 ? 2 : 1;
+
+  // Terminal positions dominate every heuristic.
+  const status = checkGameStatus(board);
+  if (status.isGameOver) {
+    if (status.winner === aiPlayer) return 10000;
+    if (status.winner === humanPlayer) return -10000;
+    return 0; // Draw
+  }
 
   const aiQueenHex = getQueenHex(board, aiPlayer);
   const humanQueenHex = getQueenHex(board, humanPlayer);
 
   let score = 0;
 
-  // 1. Enemy Queen surrounded count (+150 per surrounding piece!)
+  // 1. Attack: surround the enemy queen.
   if (humanQueenHex) {
-    const surroundedCount = getAllNeighbors(humanQueenHex).filter(n => isOccupied(board, n)).length;
-    score += surroundedCount * 150;
-    if (surroundedCount === 5) score += 300; // Close to win!
+    const neighbors = getAllNeighbors(humanQueenHex);
+    const aiAdjacent = neighbors.filter(n => getTopPiece(board, n)?.player === aiPlayer).length;
+    const anyOccupied = neighbors.filter(n => isOccupied(board, n)).length;
+    score += aiAdjacent * 150;
+    score += (anyOccupied - aiAdjacent) * 40;
+    if (anyOccupied === 5) score += 300; // Close to win!
   } else {
-    // Enemy hasn't placed Queen yet
-    score += 50;
+    // Slight pressure to make the human place their queen, then it becomes targetable.
+    score += turnHuman >= 3 ? 30 : 10;
   }
 
-  // 2. Friendly Queen surrounded count (-180 per surrounding piece!)
+  // 2. Defense: protect the AI queen. Only ENEMY pieces adjacent are a threat;
+  //    the AI's own surrounding pieces are a defensive ring (mild bonus).
   if (aiQueenHex) {
-    const surroundedCount = getAllNeighbors(aiQueenHex).filter(n => isOccupied(board, n)).length;
-    score -= surroundedCount * 180;
-    if (surroundedCount === 5) score -= 400; // Danger!
+    const neighbors = getAllNeighbors(aiQueenHex);
+    const enemyAdjacent = neighbors.filter(n => getTopPiece(board, n)?.player === humanPlayer).length;
+    const anyOccupied = neighbors.filter(n => isOccupied(board, n)).length;
+    const ownAdjacent = anyOccupied - enemyAdjacent;
+    score -= enemyAdjacent * 210;
+    if (anyOccupied === 5) score -= 400; // Danger!
+    score += ownAdjacent * 15;
   } else {
-    // AI hasn't placed Queen yet
-    score -= 80;
+    // Mild timing pressure so the AI places its queen around its 3rd turn.
+    score -= turnAI >= 3 ? 60 : 15;
   }
 
-  // 3. Mobility & Pinning (Beetles pinning enemy pieces or Queen)
+  // 3. Mobility & Pinning (beetles pinning enemy pieces or Queen)
   const occupiedHexes = getAllOccupiedHexes(board);
   for (const hex of occupiedHexes) {
     const stack = board.get(hexKey(hex.q, hex.r))!;
@@ -374,12 +392,17 @@ function evaluateBoard(
     }
   }
 
-  // 4. Reserve penalty for Queen not placed
-  if (!isQueenPlaced(board, aiPlayer)) {
-    score -= 100;
-  }
-
   return score;
+}
+
+// The piece that physically moved: a PILLBUG_SPECIAL actually relocates the
+// pillbug's TARGET, not the pillbug itself. Search must track that id so the
+// "one-tile move limit" rule applies to the right piece.
+function actuallyMovedPieceId(board: BoardState, action: MoveAction): string {
+  if (action.type === 'PILLBUG_SPECIAL' && action.pillbugTargetHex) {
+    return getTopPiece(board, action.pillbugTargetHex)?.id ?? action.pieceId;
+  }
+  return action.pieceId;
 }
 
 // --- HELPER SIMULATE ACTION ---
