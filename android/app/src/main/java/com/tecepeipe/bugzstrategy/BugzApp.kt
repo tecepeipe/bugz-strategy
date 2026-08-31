@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -90,6 +93,7 @@ enum class Lang(val nativeName: String) {
     ZH("中文"),
 }
 
+@Suppress("LargeClass")
 object I18n {
     private val strings: Map<Lang, Map<String, String>> = mapOf(
         Lang.EN to mapOf(
@@ -167,6 +171,29 @@ object I18n {
             "placedLog" to "Placed {bug} at ({q}, {r})",
             "movedLog" to "Moved {bug} from ({q1}, {r1}) to ({q2}, {r2})",
             "pillbugLog" to "Pillbug moved {bug} from ({q1}, {r1}) to ({q2}, {r2})",
+            "tutorialMode" to "🎓 Tutorial",
+            "tutorialWelcome" to "Welcome! This tutorial will teach you how to play Bugz. You'll learn placement, movement, and the win condition. Tap Next to begin!",
+            "tutorialNext" to "Next",
+            "tutorialSkip" to "Skip Tutorial",
+            "tutorialStepLabel" to "Step {n}:",
+            "tutorialPlaceQueen" to "Tap the 🐝 Queen Bee in your reserve below, then tap any hex on the board to place her.",
+            "tutorialOppQueen" to "⏳ Opponent is placing their Queen Bee…",
+            "tutorialPlaceSpider" to "Tap the 🕷️ Spider in your reserve, then tap a highlighted hex to place it. Spiders move exactly 3 spaces around the edge.",
+            "tutorialOppSpider" to "⏳ Opponent is placing a Spider…",
+            "tutorialPlaceBeetle" to "Tap the 🪲 Beetle in your reserve, then tap a highlighted hex to place it. Beetles move 1 space and can climb on top of other pieces!",
+            "tutorialOppBeetle" to "⏳ Opponent is placing a Beetle…",
+            "tutorialPlaceGrasshopper" to "Tap the 🦗 Grasshopper in your reserve, then tap a highlighted hex to place it. Grasshoppers jump in a straight line over pieces!",
+            "tutorialMoveExample" to "Now try moving! Tap one of your pieces on the board, then tap a highlighted hex to move it.",
+            "tutorialComplete" to "🎉 Tutorial complete! You've learned the basics — placement, movement, and the goal. Keep playing to discover more strategies. Have fun!",
+            "tutorialGotIt" to "Got It — New Game",
+            "bugQueen" to "Queen Bee",
+            "bugSpider" to "Spider",
+            "bugBeetle" to "Beetle",
+            "bugGrasshopper" to "Grasshopper",
+            "bugAnt" to "Soldier Ant",
+            "bugMosquito" to "Mosquito",
+            "bugLadybug" to "Ladybug",
+            "bugPillbug" to "Pillbug",
             "gotIt" to "Got it",
 
         ),
@@ -245,6 +272,29 @@ object I18n {
             "placedLog" to "Colocó {bug} en ({q}, {r})",
             "movedLog" to "Movió {bug} de ({q1}, {r1}) a ({q2}, {r2})",
             "pillbugLog" to "La cochinilla movió {bug} de ({q1}, {r1}) a ({q2}, {r2})",
+            "tutorialMode" to "🎓 Tutorial",
+            "tutorialWelcome" to "¡Bienvenido! Este tutorial te enseñará a jugar a Bugz. Aprenderás a colocar, mover y ganar. ¡Toca Siguiente para empezar!",
+            "tutorialNext" to "Siguiente",
+            "tutorialSkip" to "Saltar tutorial",
+            "tutorialStepLabel" to "Paso {n}:",
+            "tutorialPlaceQueen" to "Toca la 🐝 abeja reina en tu reserva abajo, luego toca cualquier hexágono para colocarla.",
+            "tutorialOppQueen" to "⏳ El oponente está colocando su abeja reina…",
+            "tutorialPlaceSpider" to "Toca la 🕷️ araña en tu reserva, luego toca un hexágono resaltado para colocarla. Las arañas se mueven exactamente 3 espacios por el borde.",
+            "tutorialOppSpider" to "⏳ El oponente está colocando una araña…",
+            "tutorialPlaceBeetle" to "Toca el 🪲 escarabajo en tu reserva, luego toca un hexágono resaltado para colocarlo. ¡Los escarabajos se mueven 1 espacio y pueden subir encima de otras piezas!",
+            "tutorialOppBeetle" to "⏳ El oponente está colocando un escarabajo…",
+            "tutorialPlaceGrasshopper" to "Toca el 🦗 saltamontes en tu reserva, luego toca un hexágono resaltado para colocarlo. ¡Los saltamontes saltan en línea recta sobre las piezas!",
+            "tutorialMoveExample" to "¡Ahora intenta mover! Toca una de tus piezas en el tablero, luego toca un hexágono resaltado para moverla.",
+            "tutorialComplete" to "🎉 ¡Tutorial completo! Has aprendido lo básico — colocación, movimiento y el objetivo. Sigue jugando para descubrir más estrategias. ¡Diviértete!",
+            "tutorialGotIt" to "Entendido — Nueva partida",
+            "bugQueen" to "Abeja reina",
+            "bugSpider" to "Araña",
+            "bugBeetle" to "Escarabajo",
+            "bugGrasshopper" to "Saltamontes",
+            "bugAnt" to "Hormiga soldado",
+            "bugMosquito" to "Mosquito",
+            "bugLadybug" to "Mariquita",
+            "bugPillbug" to "Cochinilla",
             "gotIt" to "Entendido",
 
         ),
@@ -323,6 +373,29 @@ object I18n {
             "placedLog" to "Colocou {bug} em ({q}, {r})",
             "movedLog" to "Moveu {bug} de ({q1}, {r1}) para ({q2}, {r2})",
             "pillbugLog" to "A bicho-bola moveu {bug} de ({q1}, {r1}) para ({q2}, {r2})",
+            "tutorialMode" to "🎓 Tutorial",
+            "tutorialWelcome" to "Bem-vindo! Este tutorial vai te ensinar a jogar Bugz. Você vai aprender colocação, movimento e como vencer. Toque em Próximo para começar!",
+            "tutorialNext" to "Próximo",
+            "tutorialSkip" to "Pular tutorial",
+            "tutorialStepLabel" to "Passo {n}:",
+            "tutorialPlaceQueen" to "Toque na 🐝 abelha rainha na sua reserva abaixo, depois toque em qualquer hexágono para colocá-la.",
+            "tutorialOppQueen" to "⏳ O oponente está colocando a abelha rainha…",
+            "tutorialPlaceSpider" to "Toque na 🕷️ aranha na sua reserva, depois toque em um hexágono destacado para colocá-la. Aranhas se movem exatamente 3 espaços pela borda.",
+            "tutorialOppSpider" to "⏳ O oponente está colocando uma aranha…",
+            "tutorialPlaceBeetle" to "Toque no 🪲 besouro na sua reserva, depois toque em um hexágono destacado para colocá-lo. Os besouros se movem 1 espaço e podem subir em cima de outras peças!",
+            "tutorialOppBeetle" to "⏳ O oponente está colocando um besouro…",
+            "tutorialPlaceGrasshopper" to "Toque no 🦗 gafanhoto na sua reserva, depois toque em um hexágono destacado para colocá-lo. Gafanhotos pulam em linha reta sobre as peças!",
+            "tutorialMoveExample" to "Agora tente mover! Toque em uma de suas peças no tabuleiro, depois toque em um hexágono destacado para movê-la.",
+            "tutorialComplete" to "🎉 Tutorial completo! Você aprendeu o básico — colocação, movimento e o objetivo. Continue jogando para descobrir mais estratégias. Divirta-se!",
+            "tutorialGotIt" to "Entendi — Nova partida",
+            "bugQueen" to "Abelha rainha",
+            "bugSpider" to "Aranha",
+            "bugBeetle" to "Besouro",
+            "bugGrasshopper" to "Gafanhoto",
+            "bugAnt" to "Formiga soldado",
+            "bugMosquito" to "Pernilongo",
+            "bugLadybug" to "Joaninha",
+            "bugPillbug" to "Bicho-bola",
             "gotIt" to "Entendi",
 
         ),
@@ -403,6 +476,29 @@ object I18n {
             "placedLog" to "A placé {bug} en ({q}, {r})",
             "movedLog" to "A déplacé {bug} de ({q1}, {r1}) vers ({q2}, {r2})",
             "pillbugLog" to "Le cloporte a déplacé {bug} de ({q1}, {r1}) vers ({q2}, {r2})",
+            "tutorialMode" to "🎓 Tutoriel",
+            "tutorialWelcome" to "Bienvenue ! Ce tutoriel va vous apprendre à jouer à Bugz. Placement, déplacement et condition de victoire. Appuyez sur Suivant !",
+            "tutorialNext" to "Suivant",
+            "tutorialSkip" to "Passer le tutoriel",
+            "tutorialStepLabel" to "Étape {n} :",
+            "tutorialPlaceQueen" to "Appuyez sur la 🐝 reine dans votre réserve ci-dessous, puis sur un hexagone pour la placer.",
+            "tutorialOppQueen" to "⏳ L'adversaire place sa reine…",
+            "tutorialPlaceSpider" to "Appuyez sur l'🕷️ araignée dans votre réserve, puis sur un hexagone en surbrillance. Les araignées se déplacent d'exactement 3 cases sur le bord.",
+            "tutorialOppSpider" to "⏳ L'adversaire place une araignée…",
+            "tutorialPlaceBeetle" to "Appuyez sur le 🪲 scarabée dans votre réserve, puis sur un hexagone en surbrillance. Les scarabées se déplacent d'1 case et peuvent grimper sur d'autres pièces !",
+            "tutorialOppBeetle" to "⏳ L'adversaire place un scarabée…",
+            "tutorialPlaceGrasshopper" to "Appuyez sur la 🦗 sauterelle dans votre réserve, puis sur un hexagone en surbrillance. Les sauterelles sautent en ligne droite par-dessus les pièces !",
+            "tutorialMoveExample" to "Essayez de déplacer ! Appuyez sur une de vos pièces sur le plateau, puis sur un hexagone en surbrillance pour la déplacer.",
+            "tutorialComplete" to "🎉 Tutoriel terminé ! Vous avez appris les bases — placement, déplacement et objectif. Continuez à jouer pour découvrir plus de stratégies. Amusez-vous !",
+            "tutorialGotIt" to "Compris — Nouvelle partie",
+            "bugQueen" to "Reine",
+            "bugSpider" to "Araignée",
+            "bugBeetle" to "Scarabée",
+            "bugGrasshopper" to "Sauterelle",
+            "bugAnt" to "Fourmi soldat",
+            "bugMosquito" to "Moustique",
+            "bugLadybug" to "Coccinelle",
+            "bugPillbug" to "Cloporte",
             "gotIt" to "Compris",
 
         ),
@@ -482,6 +578,29 @@ object I18n {
             "placedLog" to "{bug} bei ({q}, {r}) platziert",
             "movedLog" to "{bug} von ({q1}, {r1}) nach ({q2}, {r2}) bewegt",
             "pillbugLog" to "Assel bewegt {bug} von ({q1}, {r1}) nach ({q2}, {r2})",
+            "tutorialMode" to "🎓 Tutorial",
+            "tutorialWelcome" to "Willkommen! Dieses Tutorial bringt dir Bugz bei. Platzieren, Bewegen und Siegbedingung. Tippe auf Weiter!",
+            "tutorialNext" to "Weiter",
+            "tutorialSkip" to "Tutorial überspringen",
+            "tutorialStepLabel" to "Schritt {n}:",
+            "tutorialPlaceQueen" to "Tippe auf die 🐝 Bienenkönigin in deiner Reserve unten, dann auf ein beliebiges Feld zum Platzieren.",
+            "tutorialOppQueen" to "⏳ Gegner platziert seine Bienenkönigin…",
+            "tutorialPlaceSpider" to "Tippe auf die 🕷️ Spinne in deiner Reserve, dann auf ein hervorgehobenes Feld. Spinnen bewegen sich genau 3 Felder am Rand.",
+            "tutorialOppSpider" to "⏳ Gegner platziert eine Spinne…",
+            "tutorialPlaceBeetle" to "Tippe auf den 🪲 Käfer in deiner Reserve, dann auf ein hervorgehobenes Feld. Käfer bewegen sich 1 Feld und können auf andere Kacheln klettern!",
+            "tutorialOppBeetle" to "⏳ Gegner platziert einen Käfer…",
+            "tutorialPlaceGrasshopper" to "Tippe auf den 🦗 Grashüpfer in deiner Reserve, dann auf ein hervorgehobenes Feld. Grashüpfer springen in gerader Linie über Kacheln!",
+            "tutorialMoveExample" to "Versuche jetzt zu ziehen! Tippe auf eine deiner Kacheln auf dem Brett, dann auf ein hervorgehobenes Feld zum Bewegen.",
+            "tutorialComplete" to "🎉 Tutorial abgeschlossen! Du hast die Grundlagen gelernt — Platzierung, Bewegung und Ziel. Spiele weiter, um mehr Strategien zu entdecken. Viel Spaß!",
+            "tutorialGotIt" to "Verstanden — Neues Spiel",
+            "bugQueen" to "Bienenkönigin",
+            "bugSpider" to "Spinne",
+            "bugBeetle" to "Käfer",
+            "bugGrasshopper" to "Heuschrecke",
+            "bugAnt" to "Ameisensoldat",
+            "bugMosquito" to "Mücke",
+            "bugLadybug" to "Marienkäfer",
+            "bugPillbug" to "Assel",
             "gotIt" to "Verstanden",
 
         ),
@@ -553,6 +672,29 @@ object I18n {
             "placedLog" to "{bug} を ({q}, {r}) に配置",
             "movedLog" to "{bug} を ({q1}, {r1}) から ({q2}, {r2}) へ移動",
             "pillbugLog" to "ダンゴムシが {bug} を ({q1}, {r1}) から ({q2}, {r2}) へ移動",
+            "tutorialMode" to "🎓 チュートリアル",
+            "tutorialWelcome" to "ようこそ！このチュートリアルでBugzの遊び方を学びましょう。配置、移動、勝利条件を説明します。次へをタップ！",
+            "tutorialNext" to "次へ",
+            "tutorialSkip" to "チュートリアルをスキップ",
+            "tutorialStepLabel" to "ステップ{n}:",
+            "tutorialPlaceQueen" to "下のリザーブから🐝女王バチをタップし、盤面のマスをタップして配置しましょう。",
+            "tutorialOppQueen" to "⏳ 相手が女王バチを配置中…",
+            "tutorialPlaceSpider" to "リザーブから🕷️クモをタップし、ハイライトされたマスに配置しましょう。クモは外周に沿って3マス移動します。",
+            "tutorialOppSpider" to "⏳ 相手がクモを配置中…",
+            "tutorialPlaceBeetle" to "リザーブから🪲カブトムシをタップし、ハイライトされたマスに配置しましょう。カブトムシは1マス移動し、他の駒の上に登れます！",
+            "tutorialOppBeetle" to "⏳ 相手がカブトムシを配置中…",
+            "tutorialPlaceGrasshopper" to "リザーブから🦗バッタをタップし、ハイライトされたマスに配置しましょう。バッタは一直線に駒を飛び越えます！",
+            "tutorialMoveExample" to "移動してみましょう！盤面の自分の駒をタップし、ハイライトされたマスをタップして移動します。",
+            "tutorialComplete" to "🎉 チュートリアル完了！基本を学びました — 配置、移動、目的。もっと戦略を見つけるために遊び続けましょう。楽しんで！",
+            "tutorialGotIt" to "わかりました — 新規ゲーム",
+            "bugQueen" to "女王バチ",
+            "bugSpider" to "クモ",
+            "bugBeetle" to "カブトムシ",
+            "bugGrasshopper" to "バッタ",
+            "bugAnt" to "兵隊アリ",
+            "bugMosquito" to "蚊",
+            "bugLadybug" to "テントウムシ",
+            "bugPillbug" to "ダンゴムシ",
             "gotIt" to "OK",
 
         ),
@@ -622,13 +764,45 @@ object I18n {
             "placedLog" to "将{bug}放置在({q}, {r})",
             "movedLog" to "将{bug}从({q1}, {r1})移动到({q2}, {r2})",
             "pillbugLog" to "潮虫将{bug}从({q1}, {r1})移动到({q2}, {r2})",
+            "tutorialMode" to "🎓 教程",
+            "tutorialWelcome" to "欢迎！本教程将教你如何玩Bugz。你将学习放置、移动和获胜条件。点击「下一步」开始！",
+            "tutorialNext" to "下一步",
+            "tutorialSkip" to "跳过教程",
+            "tutorialStepLabel" to "第{n}步：",
+            "tutorialPlaceQueen" to "点击下方后备中的🐝蜂后，然后点击棋盘上的任意格子放置她。",
+            "tutorialOppQueen" to "⏳ 对手正在放置蜂后…",
+            "tutorialPlaceSpider" to "点击后备中的🕷️蜘蛛，然后点击高亮格子放置。蜘蛛沿外周恰好移动3格。",
+            "tutorialOppSpider" to "⏳ 对手正在放置蜘蛛…",
+            "tutorialPlaceBeetle" to "点击后备中的🪲甲虫，然后点击高亮格子放置。甲虫移动1格，还能爬到其他棋子上面！",
+            "tutorialOppBeetle" to "⏳ 对手正在放置甲虫…",
+            "tutorialPlaceGrasshopper" to "点击后备中的🦗蚱蜢，然后点击高亮格子放置。蚱蜢沿直线跳过棋子！",
+            "tutorialMoveExample" to "现在试试移动！点击棋盘上你的棋子，然后点击高亮格子来移动它。",
+            "tutorialComplete" to "🎉 教程完成！你已经学会了基本操作——放置、移动和目标。继续游玩以探索更多策略。祝你玩得开心！",
+            "tutorialGotIt" to "知道了 — 新游戏",
+            "bugQueen" to "蜂后",
+            "bugSpider" to "蜘蛛",
+            "bugBeetle" to "甲虫",
+            "bugGrasshopper" to "蚱蜢",
+            "bugAnt" to "兵蚁",
+            "bugMosquito" to "蚊子",
+            "bugLadybug" to "瓢虫",
+            "bugPillbug" to "潮虫",
             "gotIt" to "知道了",
 
         ),
     )
 
-    @Volatile
-    var lang: Lang = Lang.EN
+    private const val PREFS_NAME = "bugz_strategy_prefs"
+    private const val LANG_KEY = "lang_v1"
+
+    private val _langState = MutableStateFlow(Lang.EN)
+    val langState: StateFlow<Lang> = _langState
+
+    var lang: Lang
+        get() = _langState.value
+        set(value) {
+            _langState.value = value
+        }
 
     fun tr(key: String): String {
         val table = strings[lang] ?: strings.getValue(Lang.EN)
@@ -641,6 +815,43 @@ object I18n {
             text = text.replace("{$k}", v.toString())
         }
         return text
+    }
+
+    /** Load saved language from SharedPreferences, or detect device locale. */
+    fun initLang(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val saved = prefs.getString(LANG_KEY, null)
+        lang = if (saved != null) {
+            try {
+                Lang.valueOf(saved)
+            } catch (_: Exception) {
+                detectDeviceLang(context)
+            }
+        } else {
+            detectDeviceLang(context)
+        }
+    }
+
+    /** Persist current language choice. */
+    fun saveLang(context: Context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(LANG_KEY, lang.name).apply()
+    }
+
+    /** Map Android device locale to the nearest supported Lang, defaulting to EN. */
+    @Suppress("NewApi")
+    private fun detectDeviceLang(context: Context): Lang {
+        val locale = context.resources.configuration.locales[0]
+        val code = locale.language.lowercase()
+        return when (code) {
+            "es" -> Lang.ES
+            "pt" -> Lang.PT
+            "fr" -> Lang.FR
+            "de" -> Lang.DE
+            "ja" -> Lang.JA
+            "zh" -> Lang.ZH
+            else -> Lang.EN
+        }
     }
 }
 
@@ -664,6 +875,20 @@ enum class BugType(
     MOSQUITO("Mosquito", "🦟", 1, true),
     LADYBUG("Ladybug", "🐞", 1, true),
     PILLBUG("Pillbug", "🪳", 1, true),
+    ;
+
+    /** I18n key for this bug's translatable name. */
+    val nameKey: String
+        get() = when (this) {
+            QUEEN -> "bugQueen"
+            SPIDER -> "bugSpider"
+            BEETLE -> "bugBeetle"
+            GRASSHOPPER -> "bugGrasshopper"
+            SOLDIER_ANT -> "bugAnt"
+            MOSQUITO -> "bugMosquito"
+            LADYBUG -> "bugLadybug"
+            PILLBUG -> "bugPillbug"
+        }
 }
 
 data class Piece(val id: String, val type: BugType, val player: Player)
@@ -683,6 +908,19 @@ data class AxialHex(val q: Int, val r: Int) {
 enum class GameMode { PASS_AND_PLAY, AI }
 enum class AIDifficulty { EASY, MEDIUM, HARD }
 
+enum class TutorialStep(val instructionKey: String) {
+    WELCOME("tutorialWelcome"),
+    PLACE_QUEEN("tutorialPlaceQueen"),
+    OPP_QUEEN("tutorialOppQueen"),
+    PLACE_SPIDER("tutorialPlaceSpider"),
+    OPP_SPIDER("tutorialOppSpider"),
+    PLACE_BEETLE("tutorialPlaceBeetle"),
+    OPP_BEETLE("tutorialOppBeetle"),
+    PLACE_GRASSHOPPER("tutorialPlaceGrasshopper"),
+    MOVE_EXAMPLE("tutorialMoveExample"),
+    COMPLETE("tutorialComplete"),
+}
+
 data class ExpansionsConfig(
     val mosquito: Boolean = true,
     val ladybug: Boolean = true,
@@ -694,6 +932,7 @@ data class GameSettings(
     val aiDifficulty: AIDifficulty = AIDifficulty.MEDIUM,
     val expansions: ExpansionsConfig = ExpansionsConfig(),
     val humanColor: Player = Player.ONE,
+    val tutorialMode: Boolean = false,
 )
 
 data class MoveLogEntry(val turn: Int, val player: Player, val text: String)
@@ -1442,7 +1681,7 @@ class BugzEngine {
 
             logDesc = I18n.tr(
                 "placedLog",
-                "bug" to action.bugType.title,
+                "bug" to I18n.tr(action.bugType.nameKey),
                 "q" to action.toHex.q,
                 "r" to action.toHex.r,
             )
@@ -1460,7 +1699,7 @@ class BugzEngine {
 
             logDesc = I18n.tr(
                 "movedLog",
-                "bug" to action.bugType.title,
+                "bug" to I18n.tr(action.bugType.nameKey),
                 "q1" to action.fromHex.q,
                 "r1" to action.fromHex.r,
                 "q2" to action.toHex.q,
@@ -1592,6 +1831,7 @@ private fun settingsToJson(s: GameSettings): JSONObject = JSONObject().apply {
     put("mode", s.mode.name)
     put("aiDifficulty", s.aiDifficulty.name)
     put("humanColor", s.humanColor.name)
+    put("tutorialMode", s.tutorialMode)
     put("expMosquito", s.expansions.mosquito)
     put("expLadybug", s.expansions.ladybug)
     put("expPillbug", s.expansions.pillbug)
@@ -1601,6 +1841,7 @@ private fun settingsFromJson(o: JSONObject): GameSettings = GameSettings(
     mode = GameMode.valueOf(o.getString("mode")),
     aiDifficulty = AIDifficulty.valueOf(o.getString("aiDifficulty")),
     humanColor = Player.valueOf(o.getString("humanColor")),
+    tutorialMode = o.optBoolean("tutorialMode", false),
     expansions = ExpansionsConfig(
         mosquito = o.getBoolean("expMosquito"),
         ladybug = o.getBoolean("expLadybug"),
@@ -2035,6 +2276,12 @@ fun BugzApp() {
     val engine = remember { BugzEngine() }
     val context = LocalContext.current
 
+    // Initialize language from saved preference or device locale
+    LaunchedEffect(Unit) { I18n.initLang(context) }
+    // Observe language changes so the whole UI recomposes
+    @Suppress("UNUSED_VARIABLE")
+    val currentLang by I18n.langState.collectAsState()
+
     var gameState by remember { mutableStateOf(0) }
     fun bump() {
         gameState++
@@ -2060,6 +2307,13 @@ fun BugzApp() {
     var isAITurn by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }
     var undoStack by remember { mutableStateOf<List<BugzEngine.EngineSnapshot>>(emptyList()) }
+
+    // Tutorial mode state
+    var tutorialStep by remember { mutableStateOf(TutorialStep.WELCOME) }
+    val isTutorial by remember { derivedStateOf { settings.tutorialMode && tutorialStep != TutorialStep.COMPLETE } }
+
+    val scope = rememberCoroutineScope()
+    var executeMoveImpl: ((MoveAction) -> Unit)? = null
 
     val aiPlayer: Player = if (settings.humanColor == Player.ONE) Player.TWO else Player.ONE
 
@@ -2090,11 +2344,32 @@ fun BugzApp() {
         }
     }
 
-    // AI move trigger: launched in a persistent scope so it is never cancelled by recomposition
-    val scope = rememberCoroutineScope()
-    var executeMoveImpl: ((MoveAction) -> Unit)? = null
+    /** Advance the tutorial to the next step. */
+    fun advanceTutorial() {
+        if (!settings.tutorialMode) return
+        tutorialStep = when (tutorialStep) {
+            TutorialStep.WELCOME -> TutorialStep.PLACE_QUEEN
+            TutorialStep.PLACE_QUEEN -> TutorialStep.OPP_QUEEN
+            TutorialStep.OPP_QUEEN -> TutorialStep.PLACE_SPIDER
+            TutorialStep.PLACE_SPIDER -> TutorialStep.OPP_SPIDER
+            TutorialStep.OPP_SPIDER -> TutorialStep.PLACE_BEETLE
+            TutorialStep.PLACE_BEETLE -> TutorialStep.OPP_BEETLE
+            TutorialStep.OPP_BEETLE -> TutorialStep.PLACE_GRASSHOPPER
+            TutorialStep.PLACE_GRASSHOPPER -> TutorialStep.MOVE_EXAMPLE
+            TutorialStep.MOVE_EXAMPLE -> TutorialStep.COMPLETE
+            TutorialStep.COMPLETE -> TutorialStep.COMPLETE
+        }
+    }
+
+    /** Skip the tutorial and return to setup. */
+    fun skipTutorial() {
+        tutorialStep = TutorialStep.COMPLETE
+        settings = settings.copy(tutorialMode = false)
+        isSetupOpen = true
+    }
 
     fun requestAIMove() {
+        if (settings.tutorialMode && tutorialStep != TutorialStep.COMPLETE) return // tutorial handles its own opponent
         if (settings.mode != GameMode.AI) return
         if (gameOver != null || isSetupOpen) return
         if (engine.currentPlayer != aiPlayer) return
@@ -2162,10 +2437,46 @@ fun BugzApp() {
         bump()
         applyForcedPasses()
         bump()
-        requestAIMove()
+
+        // Advance tutorial step after any move in tutorial mode
+        if (settings.tutorialMode && tutorialStep != TutorialStep.COMPLETE) {
+            advanceTutorial()
+        } else {
+            requestAIMove()
+        }
     }
 
     executeMoveImpl = ::executeMove
+
+    // Auto-execute opponent placement when tutorial is on an OPP_* step.
+    // Uses LaunchedEffect to always read fresh engine state (avoids stale-closure bugs).
+    if (isTutorial && tutorialStep.name.startsWith("OPP_") && gameOver == null) {
+        LaunchedEffect(tutorialStep) {
+            isAITurn = true
+            delay(800)
+            val oppPlayer = if (settings.humanColor == Player.ONE) Player.TWO else Player.ONE
+            val reserve = engine.reserveFor(oppPlayer)
+            val bugType = when (tutorialStep) {
+                TutorialStep.OPP_QUEEN -> BugType.QUEEN
+                TutorialStep.OPP_SPIDER -> BugType.SPIDER
+                TutorialStep.OPP_BEETLE -> BugType.BEETLE
+                else -> reserve.firstOrNull()?.type ?: run {
+                    isAITurn = false
+                    return@LaunchedEffect
+                }
+            }
+            val piece = reserve.firstOrNull { it.type == bugType } ?: reserve.firstOrNull() ?: run {
+                isAITurn = false
+                return@LaunchedEffect
+            }
+            val placements = engine.legalActions().filter { it.type == MoveAction.ActionType.PLACE && it.pieceId == piece.id }
+            val action = placements.firstOrNull()
+            if (action != null) {
+                executeMove(action)
+            }
+            isAITurn = false
+        }
+    }
 
     fun startNewGame(newSettings: GameSettings) {
         engine.initNewGame(newSettings.expansions)
@@ -2179,6 +2490,7 @@ fun BugzApp() {
         undoStack = emptyList()
         resumeSave = null
         isSetupOpen = false
+        tutorialStep = if (newSettings.tutorialMode) TutorialStep.WELCOME else TutorialStep.COMPLETE
         bump()
         requestAIMove()
     }
@@ -2563,6 +2875,29 @@ fun BugzApp() {
                         },
                     )
                 }
+
+                // Tutorial Welcome Dialog
+                if (settings.tutorialMode && tutorialStep == TutorialStep.WELCOME && !isSetupOpen) {
+                    TutorialWelcomeDialog(
+                        onNext = { advanceTutorial() },
+                        onSkip = { skipTutorial() },
+                    )
+                }
+
+                // Tutorial Complete Dialog
+                if (settings.tutorialMode && tutorialStep == TutorialStep.COMPLETE && engine.board.size > 0) {
+                    TutorialCompleteDialog(
+                        onClose = { skipTutorial() },
+                    )
+                }
+
+                // Tutorial Instruction Overlay (below top bar)
+                if (isTutorial && !isSetupOpen) {
+                    TutorialOverlay(
+                        step = tutorialStep,
+                        onSkip = { skipTutorial() },
+                    )
+                }
             }
         }
     }
@@ -2822,7 +3157,7 @@ fun ReserveBar(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = bug.title,
+                            text = I18n.tr(bug.nameKey),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isSelected) colors.onPrimary else colors.onSurfaceVariant,
@@ -2923,6 +3258,7 @@ fun SetupModal(
     var mosquito by remember { mutableStateOf(currentSettings.expansions.mosquito) }
     var ladybug by remember { mutableStateOf(currentSettings.expansions.ladybug) }
     var pillbug by remember { mutableStateOf(currentSettings.expansions.pillbug) }
+    var tutorialMode by remember { mutableStateOf(currentSettings.tutorialMode) }
     var showRules by remember { mutableStateOf(false) }
 
     if (showRules) {
@@ -2939,13 +3275,31 @@ fun SetupModal(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = mode == GameMode.PASS_AND_PLAY,
-                        onClick = { mode = GameMode.PASS_AND_PLAY },
+                        onClick = {
+                            mode = GameMode.PASS_AND_PLAY
+                            tutorialMode = false
+                        },
                         label = { Text(I18n.tr("modePassPlay")) },
                     )
                     FilterChip(
                         selected = mode == GameMode.AI,
                         onClick = { mode = GameMode.AI },
                         label = { Text(I18n.tr("modeVsAi")) },
+                    )
+                    FilterChip(
+                        selected = tutorialMode,
+                        onClick = {
+                            tutorialMode = !tutorialMode
+                            if (tutorialMode) {
+                                mode = GameMode.AI
+                                diff = AIDifficulty.EASY
+                                humanColor = Player.ONE
+                                mosquito = false
+                                ladybug = false
+                                pillbug = false
+                            }
+                        },
+                        label = { Text(I18n.tr("tutorialMode")) },
                     )
                 }
 
@@ -3021,6 +3375,7 @@ fun SetupModal(
                             aiDifficulty = diff,
                             expansions = ExpansionsConfig(mosquito, ladybug, pillbug),
                             humanColor = humanColor,
+                            tutorialMode = tutorialMode,
                         ),
                     )
                 },
@@ -3099,6 +3454,84 @@ fun RulesDialog(onClose: () -> Unit) {
 }
 
 @Composable
+fun TutorialOverlay(
+    step: TutorialStep,
+    onSkip: () -> Unit,
+) {
+    if (step == TutorialStep.WELCOME || step == TutorialStep.COMPLETE) return
+    val playerStepNum = when (step) {
+        TutorialStep.PLACE_QUEEN -> 1
+        TutorialStep.PLACE_SPIDER -> 2
+        TutorialStep.PLACE_BEETLE -> 3
+        TutorialStep.PLACE_GRASSHOPPER -> 4
+        TutorialStep.MOVE_EXAMPLE -> 5
+        else -> 0 // OPP_ steps
+    }
+    Surface(
+        color = Color(0xFFF59E0B).copy(alpha = 0.95f),
+        shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                if (playerStepNum > 0) {
+                    Text(
+                        text = I18n.tr("tutorialStepLabel", "n" to playerStepNum),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF451A03).copy(alpha = 0.7f),
+                    )
+                }
+                Text(
+                    text = I18n.tr(step.instructionKey),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF451A03),
+                )
+            }
+            TextButton(onClick = onSkip) {
+                Text(
+                    text = I18n.tr("tutorialSkip"),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF451A03),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TutorialWelcomeDialog(onNext: () -> Unit, onSkip: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text(I18n.tr("tutorialMode"), fontWeight = FontWeight.Bold) },
+        text = { Text(I18n.tr("tutorialWelcome"), fontSize = 14.sp) },
+        confirmButton = {
+            Button(onClick = onNext) { Text(I18n.tr("tutorialNext")) }
+        },
+        dismissButton = {
+            TextButton(onClick = onSkip) { Text(I18n.tr("tutorialSkip")) }
+        },
+    )
+}
+
+@Composable
+fun TutorialCompleteDialog(onClose: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(I18n.tr("tutorialComplete").take(30), fontWeight = FontWeight.Bold) },
+        text = { Text(I18n.tr("tutorialComplete"), fontSize = 14.sp) },
+        confirmButton = {
+            Button(onClick = onClose) { Text(I18n.tr("tutorialGotIt")) }
+        },
+    )
+}
+
+@Composable
 fun GameOverDialog(
     winner: Player?,
     isDraw: Boolean,
@@ -3134,6 +3567,7 @@ fun GameOverDialog(
 
 @Composable
 fun LanguageSwitcher() {
+    val context = LocalContext.current
     Box {
         var menuOpen by remember { mutableStateOf(false) }
         TextButton(onClick = { menuOpen = true }) {
@@ -3145,6 +3579,7 @@ fun LanguageSwitcher() {
                     text = { Text(lang.nativeName) },
                     onClick = {
                         I18n.lang = lang
+                        I18n.saveLang(context)
                         menuOpen = false
                     },
                 )

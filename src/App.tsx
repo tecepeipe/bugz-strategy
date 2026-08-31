@@ -13,6 +13,9 @@ import {
   MoveLogEntry,
   Piece,
   Player,
+  TutorialStep,
+  TUTORIAL_STEP_ORDER,
+  TUTORIAL_INSTRUCTION_KEYS,
 } from './types/bugz';
 import {
   checkGameStatus,
@@ -48,6 +51,9 @@ import {
   Sparkles,
   AlertCircle,
   HelpCircle,
+  GraduationCap,
+  SkipForward,
+  X,
 } from 'lucide-react';
 
 export default function BugzApp() {
@@ -97,6 +103,10 @@ function App() {
   const [isGameOverModalOpen, setIsGameOverModalOpen] = useState<boolean>(false);
   const [isKotlinModalOpen, setIsKotlinModalOpen] = useState<boolean>(false);
 
+  // --- TUTORIAL STATE ---
+  const [tutorialStep, setTutorialStep] = useState<TutorialStep>('COMPLETE');
+  const isTutorial = !!(settings.tutorialMode && tutorialStep !== 'COMPLETE');
+
   // Helper function to create initial reserves for a player
   const createInitialReserve = (player: Player, expansions: ExpansionsConfig): Piece[] => {
     const pieces: Piece[] = [];
@@ -144,6 +154,7 @@ function App() {
     setIsNewGameModalOpen(false);
     setIsGameOverModalOpen(false);
     setToastMessage(null);
+    setTutorialStep(newSettings.tutorialMode ? 'WELCOME' : 'COMPLETE');
     gameIdRef.current += 1;
   }, []);
 
@@ -270,6 +281,9 @@ function App() {
   // timer before it ever fires, leaving the AI stuck on "thinking" forever
   // (the flag is only read from the render closure as a re-entry guard).
   useEffect(() => {
+    // Skip AI during tutorial — tutorial handles its own opponent moves
+    if (settings.tutorialMode && tutorialStep !== 'COMPLETE') return;
+
     if (
       settings.mode === 'AI' &&
       currentPlayer === 2 &&
@@ -327,7 +341,7 @@ function App() {
 
       return () => clearTimeout(aiTimer);
     }
-  }, [currentPlayer, settings, board, p1Reserve, p2Reserve, turnCountP1, turnCountP2, lastMovedPieceId, gameStatus.isGameOver]);
+  }, [currentPlayer, settings, board, p1Reserve, p2Reserve, turnCountP1, turnCountP2, lastMovedPieceId, gameStatus.isGameOver, tutorialStep]);
 
   // Execute a validated MoveAction
   const executeMove = (action: MoveAction) => {
@@ -444,6 +458,73 @@ function App() {
       setTurnCountP2(prev => prev + 1);
       setCurrentPlayer(1);
     }
+
+    // Advance tutorial step after any move in tutorial mode
+    if (settings.tutorialMode && tutorialStep !== 'COMPLETE') {
+      advanceTutorial();
+    }
+  };
+
+  // --- TUTORIAL LOGIC ---
+  const PLAYER_TUTORIAL_STEPS: TutorialStep[] = [
+    'PLACE_QUEEN', 'PLACE_SPIDER', 'PLACE_BEETLE', 'PLACE_GRASSHOPPER', 'MOVE_EXAMPLE',
+  ];
+  const PLAYER_TUTORIAL_STEP_NUM: Record<TutorialStep, number> = {
+    WELCOME: 0, PLACE_QUEEN: 1, OPP_QUEEN: 0, PLACE_SPIDER: 2, OPP_SPIDER: 0,
+    PLACE_BEETLE: 3, OPP_BEETLE: 0, PLACE_GRASSHOPPER: 4, MOVE_EXAMPLE: 5, COMPLETE: 0,
+  };
+  const TUTORIAL_NEXT: Record<TutorialStep, TutorialStep> = {
+    WELCOME: 'PLACE_QUEEN',
+    PLACE_QUEEN: 'OPP_QUEEN',
+    OPP_QUEEN: 'PLACE_SPIDER',
+    PLACE_SPIDER: 'OPP_SPIDER',
+    OPP_SPIDER: 'PLACE_BEETLE',
+    PLACE_BEETLE: 'OPP_BEETLE',
+    OPP_BEETLE: 'PLACE_GRASSHOPPER',
+    PLACE_GRASSHOPPER: 'MOVE_EXAMPLE',
+    MOVE_EXAMPLE: 'COMPLETE',
+    COMPLETE: 'COMPLETE',
+  };
+
+  const advanceTutorial = () => {
+    setTutorialStep(TUTORIAL_NEXT[tutorialStep]);
+  };
+
+  // Auto-execute opponent placement when tutorial is on an OPP_* step.
+  // Uses useEffect to always read fresh state (avoids stale-closure bugs).
+  useEffect(() => {
+    if (!isTutorial || !tutorialStep.startsWith('OPP_') || gameStatus.isGameOver) return;
+
+    const oppBugType: BugType =
+      tutorialStep === 'OPP_QUEEN' ? 'QUEEN' :
+      tutorialStep === 'OPP_SPIDER' ? 'SPIDER' :
+      tutorialStep === 'OPP_BEETLE' ? 'BEETLE' : 'GRASSHOPPER';
+
+    setIsAITurn(true);
+    const timer = setTimeout(() => {
+      const piece = p2Reserve.find(p => p.type === oppBugType);
+      if (piece) {
+        const placements = getValidPlacements(board, 2, turnCountP2);
+        if (placements.length > 0) {
+          executeMove({
+            type: 'PLACE',
+            pieceId: piece.id,
+            bugType: oppBugType,
+            player: 2,
+            toHex: placements[0],
+          });
+        }
+      }
+      setIsAITurn(false);
+    }, 800);
+
+    return () => { clearTimeout(timer); setIsAITurn(false); };
+  }, [tutorialStep, isTutorial, board, p2Reserve, turnCountP2, gameStatus.isGameOver]);
+
+  const skipTutorial = () => {
+    setTutorialStep('COMPLETE');
+    setSettings(s => ({ ...s, tutorialMode: false }));
+    setIsNewGameModalOpen(true);
   };
 
   // --- USER INTERACTION HANDLERS ---
@@ -660,6 +741,70 @@ function App() {
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded-2xl shadow-xl border border-amber-300 text-xs flex items-center gap-2 animate-bounce">
           <AlertCircle className="w-4 h-4" />
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Tutorial Welcome Dialog */}
+      {tutorialStep === 'WELCOME' && !isNewGameModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+            <div className="flex items-center gap-2 mb-3">
+              <GraduationCap className="w-6 h-6 text-amber-400" />
+              <h3 className="text-lg font-black text-amber-300">{t('tutorialMode')}</h3>
+            </div>
+            <p className="text-sm text-slate-300 mb-5 leading-relaxed">{t('tutorialWelcome')}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={skipTutorial}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-700 text-slate-400 text-xs font-bold hover:bg-slate-800 transition-colors"
+              >
+                {t('tutorialSkip')}
+              </button>
+              <button
+                onClick={() => setTutorialStep('PLACE_QUEEN')}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-transform active:scale-95"
+              >
+                {t('tutorialNext')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tutorial Complete Dialog */}
+      {settings.tutorialMode && tutorialStep === 'COMPLETE' && board.size > 0 && !isNewGameModalOpen && !isGameOverModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-emerald-500/40 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+            <p className="text-sm text-slate-300 mb-5 leading-relaxed">{t('tutorialComplete')}</p>
+            <button
+              onClick={skipTutorial}
+              className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-transform active:scale-95"
+            >
+              {t('tutorialGotIt')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tutorial Instruction Overlay (below top bar) */}
+      {isTutorial && !isNewGameModalOpen && tutorialStep !== 'WELCOME' && (
+        <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between z-20">
+          <div className="flex items-center gap-2 text-xs">
+            <GraduationCap className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="text-amber-200 font-medium">
+              {tutorialStep.startsWith('OPP_')
+                ? t(TUTORIAL_INSTRUCTION_KEYS[tutorialStep] as keyof typeof import('./utils/strings').STRINGS)
+                : t('tutorialStepLabel', { n: PLAYER_TUTORIAL_STEP_NUM[tutorialStep] }) + ' ' + t(TUTORIAL_INSTRUCTION_KEYS[tutorialStep] as keyof typeof import('./utils/strings').STRINGS)
+              }
+            </span>
+          </div>
+          <button
+            onClick={skipTutorial}
+            className="shrink-0 ml-3 flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            <SkipForward className="w-3.5 h-3.5" />
+            <span>{t('tutorialSkip')}</span>
+          </button>
         </div>
       )}
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AIDifficulty, ExpansionsConfig, GameMode, GameSettings } from '../types/bugz';
-import { Bot, Users, Sparkles, Shield, Play, BookOpen } from 'lucide-react';
+import { Bot, Users, Sparkles, Shield, Play, BookOpen, GraduationCap } from 'lucide-react';
 import { RulesModal } from './RulesModal';
 import { useI18n } from '../utils/i18n';
 
@@ -20,12 +20,29 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
   const { t } = useI18n();
   const [mode, setMode] = useState<GameMode>('AI');
   const [aiDifficulty, setAIDifficulty] = useState<AIDifficulty>('MEDIUM');
+  const [tutorialMode, setTutorialMode] = useState<boolean>(false);
   const [expansions, setExpansions] = useState<ExpansionsConfig>({
     mosquito: true,
     ladybug: true,
     pillbug: true,
   });
   const [showRules, setShowRules] = useState(false);
+
+  const handleTutorialToggle = () => {
+    if (!tutorialMode) {
+      setTutorialMode(true);
+      setMode('AI');
+      setAIDifficulty('EASY');
+      setExpansions({ mosquito: false, ladybug: false, pillbug: false });
+    } else {
+      setTutorialMode(false);
+    }
+  };
+
+  const handleModeChange = (newMode: GameMode) => {
+    setMode(newMode);
+    if (newMode === 'PASS_AND_PLAY') setTutorialMode(false);
+  };
 
   if (!isOpen) return null;
 
@@ -49,9 +66,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
           </label>
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => setMode('PASS_AND_PLAY')}
+              onClick={() => handleModeChange('PASS_AND_PLAY')}
               className={`p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all ${
-                mode === 'PASS_AND_PLAY'
+                mode === 'PASS_AND_PLAY' && !tutorialMode
                   ? 'bg-amber-500/15 border-amber-400 text-amber-300 shadow-md'
                   : 'bg-slate-800/50 border-slate-700/60 text-slate-400 hover:bg-slate-800'
               }`}
@@ -61,9 +78,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
             </button>
 
             <button
-              onClick={() => setMode('AI')}
+              onClick={() => handleModeChange('AI')}
               className={`p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all ${
-                mode === 'AI'
+                mode === 'AI' && !tutorialMode
                   ? 'bg-blue-500/15 border-blue-400 text-blue-300 shadow-md'
                   : 'bg-slate-800/50 border-slate-700/60 text-slate-400 hover:bg-slate-800'
               }`}
@@ -71,11 +88,23 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               <Bot className="w-6 h-6" />
               <span className="text-xs font-bold">{t('vsAiBtn')}</span>
             </button>
+
+            <button
+              onClick={handleTutorialToggle}
+              className={`col-span-2 p-2.5 rounded-2xl border flex items-center justify-center gap-2 transition-all ${
+                tutorialMode
+                  ? 'bg-emerald-500/15 border-emerald-400 text-emerald-300 shadow-md'
+                  : 'bg-slate-800/50 border-slate-700/60 text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <GraduationCap className="w-5 h-5" />
+              <span className="text-xs font-bold">{t('tutorialMode')}</span>
+            </button>
           </div>
         </div>
 
         {/* AI Difficulty */}
-        {mode === 'AI' && (
+        {mode === 'AI' && !tutorialMode && (
           <div className="mb-6 animate-fade-in">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 block">
               {t('aiDifficultyLabel')}
@@ -112,8 +141,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               <input
                 type="checkbox"
                 checked={expansions.mosquito}
+                disabled={tutorialMode}
                 onChange={e => setExpansions({ ...expansions, mosquito: e.target.checked })}
-                className="w-4 h-4 accent-amber-500 rounded"
+                className="w-4 h-4 accent-amber-500 rounded disabled:opacity-40"
               />
             </label>
 
@@ -124,8 +154,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               <input
                 type="checkbox"
                 checked={expansions.ladybug}
+                disabled={tutorialMode}
                 onChange={e => setExpansions({ ...expansions, ladybug: e.target.checked })}
-                className="w-4 h-4 accent-amber-500 rounded"
+                className="w-4 h-4 accent-amber-500 rounded disabled:opacity-40"
               />
             </label>
 
@@ -136,8 +167,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               <input
                 type="checkbox"
                 checked={expansions.pillbug}
+                disabled={tutorialMode}
                 onChange={e => setExpansions({ ...expansions, pillbug: e.target.checked })}
-                className="w-4 h-4 accent-amber-500 rounded"
+                className="w-4 h-4 accent-amber-500 rounded disabled:opacity-40"
               />
             </label>
           </div>
@@ -154,7 +186,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
             </button>
           )}
           <button
-            onClick={() => onStartGame({ mode, aiDifficulty, expansions })}
+            onClick={() => onStartGame({ mode, aiDifficulty, expansions, tutorialMode })}
             className="flex-1 py-3 px-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-lg shadow-amber-500/20"
           >
             <Play className="w-4 h-4 fill-slate-950" />

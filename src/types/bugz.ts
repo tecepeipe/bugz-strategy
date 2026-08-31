@@ -117,7 +117,38 @@ export interface GameSettings {
   mode: GameMode;
   aiDifficulty: AIDifficulty;
   expansions: ExpansionsConfig;
+  tutorialMode?: boolean;
 }
+
+export type TutorialStep =
+  | 'WELCOME'
+  | 'PLACE_QUEEN'
+  | 'OPP_QUEEN'
+  | 'PLACE_SPIDER'
+  | 'OPP_SPIDER'
+  | 'PLACE_BEETLE'
+  | 'OPP_BEETLE'
+  | 'PLACE_GRASSHOPPER'
+  | 'MOVE_EXAMPLE'
+  | 'COMPLETE';
+
+export const TUTORIAL_STEP_ORDER: TutorialStep[] = [
+  'WELCOME', 'PLACE_QUEEN', 'OPP_QUEEN', 'PLACE_SPIDER', 'OPP_SPIDER',
+  'PLACE_BEETLE', 'OPP_BEETLE', 'PLACE_GRASSHOPPER', 'MOVE_EXAMPLE', 'COMPLETE',
+];
+
+export const TUTORIAL_INSTRUCTION_KEYS: Record<TutorialStep, string> = {
+  WELCOME: 'tutorialWelcome',
+  PLACE_QUEEN: 'tutorialPlaceQueen',
+  OPP_QUEEN: 'tutorialOppQueen',
+  PLACE_SPIDER: 'tutorialPlaceSpider',
+  OPP_SPIDER: 'tutorialOppSpider',
+  PLACE_BEETLE: 'tutorialPlaceBeetle',
+  OPP_BEETLE: 'tutorialOppBeetle',
+  PLACE_GRASSHOPPER: 'tutorialPlaceGrasshopper',
+  MOVE_EXAMPLE: 'tutorialMoveExample',
+  COMPLETE: 'tutorialComplete',
+};
 
 export interface MoveLogEntry {
   turnNumber: number;
