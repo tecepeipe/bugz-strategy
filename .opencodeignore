@@ -1,0 +1,46 @@
+# ============================================================
+# .opencodeignore — files to keep out of the agent's context.
+# Gitignore-style patterns (same syntax as .ignore / .gitignore).
+# NOTE: opencode's search (ripgrep) currently reads .ignore /
+# .rgignore / .gitignore. Keep this file in sync with .ignore
+# until opencode natively reads .opencodeignore.
+# ============================================================
+
+# Web build output — regenerated on every npm run build
+dist/
+
+# Node dependencies (symlinked shared install, huge)
+node_modules/
+
+# Lockfiles — dependency resolution noise
+package-lock.json
+bun.lock
+
+# Android Gradle build outputs — regenerated on every build
+android/.gradle/
+android/build/
+android/app/build/
+
+# Synced web bundle inside the APK (copy of dist/, minified JS)
+android/app/src/main/assets/
+
+# Machine-specific Android SDK paths
+android/local.properties
+
+# Built APKs and signing keystores — binary / secrets
+*.apk
+*.keystore
+*.jks
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python bytecode cache
+__pycache__/
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/

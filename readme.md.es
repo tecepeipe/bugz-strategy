@@ -37,6 +37,7 @@ En tu turno puedes **colocar un bicho** de tu reserva o **mover uno de tus bicho
 
 - **Pasa y juega** — dos jugadores comparten un dispositivo.
 - **VS IA** — juega contra el motor en Fácil (aleatorio), Media (codiciosa) o Difícil (búsqueda minimax profunda).
+- **🎓 Tutorial** — introducción guiada paso a paso que enseña colocación, movimiento y la condición de victoria.
 
 ## Idiomas
 

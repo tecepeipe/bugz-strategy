@@ -37,6 +37,7 @@
 
 - **Passe et joue** — deux joueurs partagent un appareil.
 - **VS IA** — jouez contre le moteur en Facile (aléatoire), Moyen (glouton) ou Difficile (recherche minimax profonde).
+- **🎓 Tutoriel** — introduction guidée étape par étape qui enseigne le placement, le déplacement et la condition de victoire.
 
 ## Langues
 

@@ -37,6 +37,7 @@ On your turn you either **place one bug** from your reserve or **move one of you
 
 - **Pass & Play** — two players share one device.
 - **VS AI** — play against the engine on Easy (random), Medium (greedy), or Hard (deep minimax search).
+- **🎓 Tutorial** — guided step-by-step introduction that teaches placement, movement, and the winning condition.
 
 ## Languages
 

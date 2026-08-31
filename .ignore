@@ -1,0 +1,43 @@
+# ============================================================
+# .ignore — ripgrep ignore file, read by opencode's glob/grep.
+# Keep in sync with .opencodeignore.
+# ============================================================
+
+# Web build output — regenerated on every npm run build
+dist/
+
+# Node dependencies (symlinked shared install, huge)
+node_modules/
+
+# Lockfiles — dependency resolution noise
+package-lock.json
+bun.lock
+
+# Android Gradle build outputs — regenerated on every build
+android/.gradle/
+android/build/
+android/app/build/
+
+# Synced web bundle inside the APK (copy of dist/, minified JS)
+android/app/src/main/assets/
+
+# Machine-specific Android SDK paths
+android/local.properties
+
+# Built APKs and signing keystores — binary / secrets
+*.apk
+*.keystore
+*.jks
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python bytecode cache
+__pycache__/
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
