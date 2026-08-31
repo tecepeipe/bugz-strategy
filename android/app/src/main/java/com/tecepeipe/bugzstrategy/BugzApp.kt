@@ -183,6 +183,7 @@ object I18n {
             "tutorialPlaceBeetle" to "Tap the 🪲 Beetle in your reserve, then tap a highlighted hex to place it. Beetles move 1 space and can climb on top of other pieces!",
             "tutorialOppBeetle" to "⏳ Opponent is placing a Beetle…",
             "tutorialPlaceGrasshopper" to "Tap the 🦗 Grasshopper in your reserve, then tap a highlighted hex to place it. Grasshoppers jump in a straight line over pieces!",
+            "tutorialOppGrasshopper" to "⏳ Opponent is placing a Grasshopper…",
             "tutorialMoveExample" to "Now try moving! Tap one of your pieces on the board, then tap a highlighted hex to move it.",
             "tutorialComplete" to "🎉 Tutorial complete! You've learned the basics — placement, movement, and the goal. Keep playing to discover more strategies. Have fun!",
             "tutorialGotIt" to "Got It — New Game",
@@ -284,6 +285,7 @@ object I18n {
             "tutorialPlaceBeetle" to "Toca el 🪲 escarabajo en tu reserva, luego toca un hexágono resaltado para colocarlo. ¡Los escarabajos se mueven 1 espacio y pueden subir encima de otras piezas!",
             "tutorialOppBeetle" to "⏳ El oponente está colocando un escarabajo…",
             "tutorialPlaceGrasshopper" to "Toca el 🦗 saltamontes en tu reserva, luego toca un hexágono resaltado para colocarlo. ¡Los saltamontes saltan en línea recta sobre las piezas!",
+            "tutorialOppGrasshopper" to "⏳ El oponente está colocando un saltamontes…",
             "tutorialMoveExample" to "¡Ahora intenta mover! Toca una de tus piezas en el tablero, luego toca un hexágono resaltado para moverla.",
             "tutorialComplete" to "🎉 ¡Tutorial completo! Has aprendido lo básico — colocación, movimiento y el objetivo. Sigue jugando para descubrir más estrategias. ¡Diviértete!",
             "tutorialGotIt" to "Entendido — Nueva partida",
@@ -385,6 +387,7 @@ object I18n {
             "tutorialPlaceBeetle" to "Toque no 🪲 besouro na sua reserva, depois toque em um hexágono destacado para colocá-lo. Os besouros se movem 1 espaço e podem subir em cima de outras peças!",
             "tutorialOppBeetle" to "⏳ O oponente está colocando um besouro…",
             "tutorialPlaceGrasshopper" to "Toque no 🦗 gafanhoto na sua reserva, depois toque em um hexágono destacado para colocá-lo. Gafanhotos pulam em linha reta sobre as peças!",
+            "tutorialOppGrasshopper" to "⏳ O oponente está colocando um gafanhoto…",
             "tutorialMoveExample" to "Agora tente mover! Toque em uma de suas peças no tabuleiro, depois toque em um hexágono destacado para movê-la.",
             "tutorialComplete" to "🎉 Tutorial completo! Você aprendeu o básico — colocação, movimento e o objetivo. Continue jogando para descobrir mais estratégias. Divirta-se!",
             "tutorialGotIt" to "Entendi — Nova partida",
@@ -488,6 +491,7 @@ object I18n {
             "tutorialPlaceBeetle" to "Appuyez sur le 🪲 scarabée dans votre réserve, puis sur un hexagone en surbrillance. Les scarabées se déplacent d'1 case et peuvent grimper sur d'autres pièces !",
             "tutorialOppBeetle" to "⏳ L'adversaire place un scarabée…",
             "tutorialPlaceGrasshopper" to "Appuyez sur la 🦗 sauterelle dans votre réserve, puis sur un hexagone en surbrillance. Les sauterelles sautent en ligne droite par-dessus les pièces !",
+            "tutorialOppGrasshopper" to "⏳ L'adversaire place une sauterelle…",
             "tutorialMoveExample" to "Essayez de déplacer ! Appuyez sur une de vos pièces sur le plateau, puis sur un hexagone en surbrillance pour la déplacer.",
             "tutorialComplete" to "🎉 Tutoriel terminé ! Vous avez appris les bases — placement, déplacement et objectif. Continuez à jouer pour découvrir plus de stratégies. Amusez-vous !",
             "tutorialGotIt" to "Compris — Nouvelle partie",
@@ -590,6 +594,7 @@ object I18n {
             "tutorialPlaceBeetle" to "Tippe auf den 🪲 Käfer in deiner Reserve, dann auf ein hervorgehobenes Feld. Käfer bewegen sich 1 Feld und können auf andere Kacheln klettern!",
             "tutorialOppBeetle" to "⏳ Gegner platziert einen Käfer…",
             "tutorialPlaceGrasshopper" to "Tippe auf den 🦗 Grashüpfer in deiner Reserve, dann auf ein hervorgehobenes Feld. Grashüpfer springen in gerader Linie über Kacheln!",
+            "tutorialOppGrasshopper" to "⏳ Gegner platziert einen Grashüpfer…",
             "tutorialMoveExample" to "Versuche jetzt zu ziehen! Tippe auf eine deiner Kacheln auf dem Brett, dann auf ein hervorgehobenes Feld zum Bewegen.",
             "tutorialComplete" to "🎉 Tutorial abgeschlossen! Du hast die Grundlagen gelernt — Platzierung, Bewegung und Ziel. Spiele weiter, um mehr Strategien zu entdecken. Viel Spaß!",
             "tutorialGotIt" to "Verstanden — Neues Spiel",
@@ -684,6 +689,7 @@ object I18n {
             "tutorialPlaceBeetle" to "リザーブから🪲カブトムシをタップし、ハイライトされたマスに配置しましょう。カブトムシは1マス移動し、他の駒の上に登れます！",
             "tutorialOppBeetle" to "⏳ 相手がカブトムシを配置中…",
             "tutorialPlaceGrasshopper" to "リザーブから🦗バッタをタップし、ハイライトされたマスに配置しましょう。バッタは一直線に駒を飛び越えます！",
+            "tutorialOppGrasshopper" to "⏳ 相手がバッタを配置中…",
             "tutorialMoveExample" to "移動してみましょう！盤面の自分の駒をタップし、ハイライトされたマスをタップして移動します。",
             "tutorialComplete" to "🎉 チュートリアル完了！基本を学びました — 配置、移動、目的。もっと戦略を見つけるために遊び続けましょう。楽しんで！",
             "tutorialGotIt" to "わかりました — 新規ゲーム",
@@ -776,6 +782,7 @@ object I18n {
             "tutorialPlaceBeetle" to "点击后备中的🪲甲虫，然后点击高亮格子放置。甲虫移动1格，还能爬到其他棋子上面！",
             "tutorialOppBeetle" to "⏳ 对手正在放置甲虫…",
             "tutorialPlaceGrasshopper" to "点击后备中的🦗蚱蜢，然后点击高亮格子放置。蚱蜢沿直线跳过棋子！",
+            "tutorialOppGrasshopper" to "⏳ 对手正在放置蚱蜢…",
             "tutorialMoveExample" to "现在试试移动！点击棋盘上你的棋子，然后点击高亮格子来移动它。",
             "tutorialComplete" to "🎉 教程完成！你已经学会了基本操作——放置、移动和目标。继续游玩以探索更多策略。祝你玩得开心！",
             "tutorialGotIt" to "知道了 — 新游戏",
@@ -917,6 +924,7 @@ enum class TutorialStep(val instructionKey: String) {
     PLACE_BEETLE("tutorialPlaceBeetle"),
     OPP_BEETLE("tutorialOppBeetle"),
     PLACE_GRASSHOPPER("tutorialPlaceGrasshopper"),
+    OPP_GRASSHOPPER("tutorialOppGrasshopper"),
     MOVE_EXAMPLE("tutorialMoveExample"),
     COMPLETE("tutorialComplete"),
 }
@@ -2355,7 +2363,8 @@ fun BugzApp() {
             TutorialStep.OPP_SPIDER -> TutorialStep.PLACE_BEETLE
             TutorialStep.PLACE_BEETLE -> TutorialStep.OPP_BEETLE
             TutorialStep.OPP_BEETLE -> TutorialStep.PLACE_GRASSHOPPER
-            TutorialStep.PLACE_GRASSHOPPER -> TutorialStep.MOVE_EXAMPLE
+            TutorialStep.PLACE_GRASSHOPPER -> TutorialStep.OPP_GRASSHOPPER
+            TutorialStep.OPP_GRASSHOPPER -> TutorialStep.MOVE_EXAMPLE
             TutorialStep.MOVE_EXAMPLE -> TutorialStep.COMPLETE
             TutorialStep.COMPLETE -> TutorialStep.COMPLETE
         }
@@ -2460,6 +2469,7 @@ fun BugzApp() {
                 TutorialStep.OPP_QUEEN -> BugType.QUEEN
                 TutorialStep.OPP_SPIDER -> BugType.SPIDER
                 TutorialStep.OPP_BEETLE -> BugType.BEETLE
+                TutorialStep.OPP_GRASSHOPPER -> BugType.GRASSHOPPER
                 else -> reserve.firstOrNull()?.type ?: run {
                     isAITurn = false
                     return@LaunchedEffect
@@ -3465,7 +3475,7 @@ fun TutorialOverlay(
         TutorialStep.PLACE_BEETLE -> 3
         TutorialStep.PLACE_GRASSHOPPER -> 4
         TutorialStep.MOVE_EXAMPLE -> 5
-        else -> 0 // OPP_ steps
+        else -> 0 // OPP_ steps and others
     }
     Surface(
         color = Color(0xFFF59E0B).copy(alpha = 0.95f),

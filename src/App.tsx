@@ -471,7 +471,8 @@ function App() {
   ];
   const PLAYER_TUTORIAL_STEP_NUM: Record<TutorialStep, number> = {
     WELCOME: 0, PLACE_QUEEN: 1, OPP_QUEEN: 0, PLACE_SPIDER: 2, OPP_SPIDER: 0,
-    PLACE_BEETLE: 3, OPP_BEETLE: 0, PLACE_GRASSHOPPER: 4, MOVE_EXAMPLE: 5, COMPLETE: 0,
+    PLACE_BEETLE: 3, OPP_BEETLE: 0, PLACE_GRASSHOPPER: 4, OPP_GRASSHOPPER: 0,
+    MOVE_EXAMPLE: 5, COMPLETE: 0,
   };
   const TUTORIAL_NEXT: Record<TutorialStep, TutorialStep> = {
     WELCOME: 'PLACE_QUEEN',
@@ -481,7 +482,8 @@ function App() {
     OPP_SPIDER: 'PLACE_BEETLE',
     PLACE_BEETLE: 'OPP_BEETLE',
     OPP_BEETLE: 'PLACE_GRASSHOPPER',
-    PLACE_GRASSHOPPER: 'MOVE_EXAMPLE',
+    PLACE_GRASSHOPPER: 'OPP_GRASSHOPPER',
+    OPP_GRASSHOPPER: 'MOVE_EXAMPLE',
     MOVE_EXAMPLE: 'COMPLETE',
     COMPLETE: 'COMPLETE',
   };
@@ -498,7 +500,8 @@ function App() {
     const oppBugType: BugType =
       tutorialStep === 'OPP_QUEEN' ? 'QUEEN' :
       tutorialStep === 'OPP_SPIDER' ? 'SPIDER' :
-      tutorialStep === 'OPP_BEETLE' ? 'BEETLE' : 'GRASSHOPPER';
+      tutorialStep === 'OPP_BEETLE' ? 'BEETLE' :
+      tutorialStep === 'OPP_GRASSHOPPER' ? 'GRASSHOPPER' : 'GRASSHOPPER';
 
     setIsAITurn(true);
     const timer = setTimeout(() => {

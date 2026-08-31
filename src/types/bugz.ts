@@ -129,12 +129,14 @@ export type TutorialStep =
   | 'PLACE_BEETLE'
   | 'OPP_BEETLE'
   | 'PLACE_GRASSHOPPER'
+  | 'OPP_GRASSHOPPER'
   | 'MOVE_EXAMPLE'
   | 'COMPLETE';
 
 export const TUTORIAL_STEP_ORDER: TutorialStep[] = [
   'WELCOME', 'PLACE_QUEEN', 'OPP_QUEEN', 'PLACE_SPIDER', 'OPP_SPIDER',
-  'PLACE_BEETLE', 'OPP_BEETLE', 'PLACE_GRASSHOPPER', 'MOVE_EXAMPLE', 'COMPLETE',
+  'PLACE_BEETLE', 'OPP_BEETLE', 'PLACE_GRASSHOPPER', 'OPP_GRASSHOPPER',
+  'MOVE_EXAMPLE', 'COMPLETE',
 ];
 
 export const TUTORIAL_INSTRUCTION_KEYS: Record<TutorialStep, string> = {
@@ -146,6 +148,7 @@ export const TUTORIAL_INSTRUCTION_KEYS: Record<TutorialStep, string> = {
   PLACE_BEETLE: 'tutorialPlaceBeetle',
   OPP_BEETLE: 'tutorialOppBeetle',
   PLACE_GRASSHOPPER: 'tutorialPlaceGrasshopper',
+  OPP_GRASSHOPPER: 'tutorialOppGrasshopper',
   MOVE_EXAMPLE: 'tutorialMoveExample',
   COMPLETE: 'tutorialComplete',
 };
