@@ -48,16 +48,18 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full max-h-[85vh] flex flex-col shadow-2xl relative overflow-hidden">
         {/* Glow accent */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-gradient-to-r from-amber-500 via-emerald-500 to-blue-500 rounded-full" />
 
-        <h2 className="text-2xl font-black text-slate-100 mb-1 flex items-center gap-2">
+        <h2 className="text-2xl font-black text-slate-100 mb-1 flex items-center gap-2 px-6 pt-6">
           <span>🐝 {t('appTitle')} {t('appSubtitle')}</span>
         </h2>
-        <p className="text-xs text-slate-400 mb-6">
+        <p className="text-xs text-slate-400 mb-4 px-6">
           {t('setupSubtitle')}
         </p>
+
+        <div className="overflow-y-auto px-6 pb-6 flex-1">
 
         {/* Game Mode */}
         <div className="mb-6">
@@ -173,6 +175,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               />
             </label>
           </div>
+        </div>
         </div>
 
         {/* Submit */}

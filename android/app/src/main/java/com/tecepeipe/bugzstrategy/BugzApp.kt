@@ -3280,40 +3280,54 @@ fun SetupModal(
         onDismissRequest = onDismiss,
         title = { Text(I18n.tr("setupTitle"), fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Text(I18n.tr("selectMode"), fontWeight = FontWeight.SemiBold)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     FilterChip(
-                        selected = mode == GameMode.PASS_AND_PLAY,
+                        selected = mode == GameMode.PASS_AND_PLAY && !tutorialMode,
                         onClick = {
                             mode = GameMode.PASS_AND_PLAY
                             tutorialMode = false
                         },
                         label = { Text(I18n.tr("modePassPlay")) },
+                        modifier = Modifier.weight(1f),
                     )
                     FilterChip(
-                        selected = mode == GameMode.AI,
-                        onClick = { mode = GameMode.AI },
-                        label = { Text(I18n.tr("modeVsAi")) },
-                    )
-                    FilterChip(
-                        selected = tutorialMode,
+                        selected = mode == GameMode.AI && !tutorialMode,
                         onClick = {
-                            tutorialMode = !tutorialMode
-                            if (tutorialMode) {
-                                mode = GameMode.AI
-                                diff = AIDifficulty.EASY
-                                humanColor = Player.ONE
-                                mosquito = false
-                                ladybug = false
-                                pillbug = false
-                            }
+                            mode = GameMode.AI
+                            tutorialMode = false
                         },
-                        label = { Text(I18n.tr("tutorialMode")) },
+                        label = { Text(I18n.tr("modeVsAi")) },
+                        modifier = Modifier.weight(1f),
                     )
                 }
+                FilterChip(
+                    selected = tutorialMode,
+                    onClick = {
+                        tutorialMode = !tutorialMode
+                        if (tutorialMode) {
+                            mode = GameMode.AI
+                            diff = AIDifficulty.EASY
+                            humanColor = Player.ONE
+                            mosquito = false
+                            ladybug = false
+                            pillbug = false
+                        }
+                    },
+                    label = { Text(I18n.tr("tutorialMode")) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-                if (mode == GameMode.AI) {
+                if (mode == GameMode.AI && !tutorialMode) {
                     Text(I18n.tr("aiDifficulty"), fontWeight = FontWeight.SemiBold)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         AIDifficulty.values().forEach { d ->
@@ -3357,19 +3371,22 @@ fun SetupModal(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = mosquito,
-                        onClick = { mosquito = !mosquito },
+                        onClick = { if (!tutorialMode) mosquito = !mosquito },
+                        enabled = !tutorialMode,
                         label = { Text(I18n.tr("expMosquito")) },
                         modifier = Modifier.fillMaxWidth(),
                     )
                     FilterChip(
                         selected = ladybug,
-                        onClick = { ladybug = !ladybug },
+                        onClick = { if (!tutorialMode) ladybug = !ladybug },
+                        enabled = !tutorialMode,
                         label = { Text(I18n.tr("expLadybug")) },
                         modifier = Modifier.fillMaxWidth(),
                     )
                     FilterChip(
                         selected = pillbug,
-                        onClick = { pillbug = !pillbug },
+                        onClick = { if (!tutorialMode) pillbug = !pillbug },
+                        enabled = !tutorialMode,
                         label = { Text(I18n.tr("expPillbug")) },
                         modifier = Modifier.fillMaxWidth(),
                     )
