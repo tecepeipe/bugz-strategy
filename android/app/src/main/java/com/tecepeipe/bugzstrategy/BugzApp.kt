@@ -1345,9 +1345,29 @@ fun getValidMovesForPiece(
     val effectiveBugTypes = getEffectiveBugTypes(board, fromHex, topPiece)
     val validDestinations = mutableSetOf<String>()
 
+    // Build a board without the moving piece so we can verify each
+    // destination stays connected to the swarm (one-hive rule).
+    val boardWithoutPiece = cloneBoard(board)
+    val fromStack = boardWithoutPiece[fromHex.key()]
+    if (fromStack != null) {
+        if (fromStack.size > 1) {
+            fromStack.removeAt(fromStack.size - 1)
+        } else {
+            boardWithoutPiece.remove(fromHex.key())
+        }
+    }
+
     for (bugType in effectiveBugTypes) {
         val dests = getMovesForBugType(board, fromHex, bugType)
-        dests.forEach { validDestinations.add(it.key()) }
+        for (dest in dests) {
+            // Every destination must touch at least one other piece in the
+            // remaining swarm. Sliding moves (Queen, Spider, Ant) already
+            // check this inside isValidGroundSlide, but jumping / climbing
+            // moves (Grasshopper, Beetle, Ladybug) do not.
+            if (dest.getNeighbors().any { isOccupied(boardWithoutPiece, it) }) {
+                validDestinations.add(dest.key())
+            }
+        }
     }
 
     return validDestinations.map { parseKey(it) }
@@ -2017,8 +2037,9 @@ fun computeHardMinimaxMove(
         )
 
         val status = checkGameStatus(nextBoard)
-        if (status.isGameOver && status.winner == aiPlayer) {
-            return action
+        if (status.isGameOver) {
+            if (status.winner == aiPlayer) return action
+            continue // Skip moves that let the opponent win immediately
         }
 
         val value = minimax(
@@ -2173,33 +2194,41 @@ fun evaluateBoard(
 
     var score = 0.0
 
-    // Attack: surround the human queen.
+    // Attack: surround the human queen. Attack weights are higher than
+    // defense because in Hive the best defence is a good offence — the
+    // player who surrounds the opponent's queen first wins regardless of
+    // their own queen's safety.  Progressive bonuses reward getting closer.
     if (humanQueenHex != null) {
         val neighbors = humanQueenHex.getNeighbors()
         val aiAdjacent = neighbors.count { getTopPiece(board, it)?.player == aiPlayer }
         val anyOccupied = neighbors.count { isOccupied(board, it) }
-        score += aiAdjacent * 150
-        score += (anyOccupied - aiAdjacent) * 40
-        if (anyOccupied == 5) score += 300
+        score += aiAdjacent * 220
+        score += (anyOccupied - aiAdjacent) * 50
+        if (anyOccupied >= 3) score += 100
+        if (anyOccupied >= 4) score += 200
+        if (anyOccupied == 5) score += 500
     } else {
-        // Slight pressure to get the human to place their queen, then it becomes targetable.
         score += if (turnHuman >= 3) 30 else 10
     }
 
-    // Defense: protect the AI queen. Only ENEMY pieces adjacent are a threat;
-    // the AI's own surrounding pieces are a defensive ring (mild bonus).
+    // Defence: protect the AI queen. Weights are deliberately lower than
+    // attack so the AI doesn't become purely reactive.
     if (aiQueenHex != null) {
         val neighbors = aiQueenHex.getNeighbors()
         val enemyAdjacent = neighbors.count { getTopPiece(board, it)?.player == humanPlayer }
         val anyOccupied = neighbors.count { isOccupied(board, it) }
         val ownAdjacent = anyOccupied - enemyAdjacent
-        score -= enemyAdjacent * 210
+        score -= enemyAdjacent * 180
+        if (anyOccupied >= 4) score -= 250
         if (anyOccupied == 5) score -= 400
         score += ownAdjacent * 15
     } else {
-        // Mild timing pressure so the AI places its queen around its 3rd turn.
         score -= if (turnAI >= 3) 60 else 15
     }
+
+    // Reserve / mobility: more pieces in reserve = more placement options.
+    score += aiReserve.size * 20
+    score -= humanReserve.size * 20
 
     val occupiedHexes = getAllOccupiedHexes(board)
     for (hex in occupiedHexes) {
@@ -2237,8 +2266,16 @@ fun simulateAction(
     humanReserve: List<Piece>,
 ): Triple<MutableMap<String, MutableList<Piece>>, List<Piece>, List<Piece>> {
     val nextBoard = cloneBoard(board)
-    var nextAIReserve = aiReserve.filter { it.id != action.pieceId }
-    var nextHumanReserve = humanReserve.filter { it.id != action.pieceId }
+    val nextAIReserve = if (action.type == MoveAction.ActionType.PLACE && aiReserve.any { it.id == action.pieceId }) {
+        aiReserve.filter { it.id != action.pieceId }
+    } else {
+        aiReserve.toList()
+    }
+    val nextHumanReserve = if (action.type == MoveAction.ActionType.PLACE && humanReserve.any { it.id == action.pieceId }) {
+        humanReserve.filter { it.id != action.pieceId }
+    } else {
+        humanReserve.toList()
+    }
 
     if (action.type == MoveAction.ActionType.PLACE) {
         val newPiece = Piece(action.pieceId, action.bugType, actingPlayer)

@@ -137,9 +137,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
           </label>
           <div className="space-y-2 bg-slate-950/60 p-3 rounded-2xl border border-slate-800">
             <label className="flex items-center justify-between text-xs text-slate-300 cursor-pointer p-1">
-              <span className="flex items-center gap-2">
-                <span className="text-lg">🦟</span> {t('mosquitoLabel')}
-              </span>
+              <span>{t('mosquitoLabel')}</span>
               <input
                 type="checkbox"
                 checked={expansions.mosquito}
@@ -150,9 +148,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
             </label>
 
             <label className="flex items-center justify-between text-xs text-slate-300 cursor-pointer p-1">
-              <span className="flex items-center gap-2">
-                <span className="text-lg">🐞</span> {t('ladybugLabel')}
-              </span>
+              <span>{t('ladybugLabel')}</span>
               <input
                 type="checkbox"
                 checked={expansions.ladybug}
@@ -163,9 +159,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
             </label>
 
             <label className="flex items-center justify-between text-xs text-slate-300 cursor-pointer p-1">
-              <span className="flex items-center gap-2">
-                <span className="text-lg">💊</span> {t('pillbugLabel')}
-              </span>
+              <span>{t('pillbugLabel')}</span>
               <input
                 type="checkbox"
                 checked={expansions.pillbug}

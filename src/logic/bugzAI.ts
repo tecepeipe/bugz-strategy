@@ -164,8 +164,9 @@ function computeHardMinimaxMove(
 
     // Check immediate victory
     const status = checkGameStatus(nextBoard);
-    if (status.isGameOver && status.winner === aiPlayer) {
-      return action; // Instant win!
+    if (status.isGameOver) {
+      if (status.winner === aiPlayer) return action; // Instant win!
+      continue; // Skip moves that let the opponent win immediately
     }
 
     const val = minimax(
@@ -346,33 +347,41 @@ function evaluateBoard(
 
   let score = 0;
 
-  // 1. Attack: surround the enemy queen.
+  // 1. Attack: surround the enemy queen. Attack weights are higher than
+  //    defense because in Hive the best defense is a good offence — the
+  //    player who surrounds the opponent's queen first wins regardless of
+  //    their own queen's safety.  Progressive bonuses reward getting closer.
   if (humanQueenHex) {
     const neighbors = getAllNeighbors(humanQueenHex);
     const aiAdjacent = neighbors.filter(n => getTopPiece(board, n)?.player === aiPlayer).length;
     const anyOccupied = neighbors.filter(n => isOccupied(board, n)).length;
-    score += aiAdjacent * 150;
-    score += (anyOccupied - aiAdjacent) * 40;
-    if (anyOccupied === 5) score += 300; // Close to win!
+    score += aiAdjacent * 220;
+    score += (anyOccupied - aiAdjacent) * 50;
+    if (anyOccupied >= 3) score += 100;
+    if (anyOccupied >= 4) score += 200;
+    if (anyOccupied === 5) score += 500;
   } else {
-    // Slight pressure to make the human place their queen, then it becomes targetable.
     score += turnHuman >= 3 ? 30 : 10;
   }
 
-  // 2. Defense: protect the AI queen. Only ENEMY pieces adjacent are a threat;
-  //    the AI's own surrounding pieces are a defensive ring (mild bonus).
+  // 2. Defense: protect the AI queen. Weights are deliberately lower than
+  //    attack so the AI doesn't become purely reactive.
   if (aiQueenHex) {
     const neighbors = getAllNeighbors(aiQueenHex);
     const enemyAdjacent = neighbors.filter(n => getTopPiece(board, n)?.player === humanPlayer).length;
     const anyOccupied = neighbors.filter(n => isOccupied(board, n)).length;
     const ownAdjacent = anyOccupied - enemyAdjacent;
-    score -= enemyAdjacent * 210;
-    if (anyOccupied === 5) score -= 400; // Danger!
+    score -= enemyAdjacent * 180;
+    if (anyOccupied >= 4) score -= 250;
+    if (anyOccupied === 5) score -= 400;
     score += ownAdjacent * 15;
   } else {
-    // Mild timing pressure so the AI places its queen around its 3rd turn.
     score -= turnAI >= 3 ? 60 : 15;
   }
+
+  // Reserve / mobility: more pieces in reserve = more placement options.
+  score += aiReserve.length * 20;
+  score -= humanReserve.length * 20;
 
   // 3. Mobility & Pinning (beetles pinning enemy pieces or Queen)
   const occupiedHexes = getAllOccupiedHexes(board);
@@ -415,12 +424,16 @@ function simulateAction(
   humanReserve: Piece[]
 ): { nextBoard: BoardState; nextAIReserve: Piece[]; nextHumanReserve: Piece[] } {
   const nextBoard = cloneBoard(board);
-  let nextAIReserve = [...aiReserve];
-  let nextHumanReserve = [...humanReserve];
+  let nextAIReserve = aiReserve;
+  let nextHumanReserve = humanReserve;
 
   if (action.type === 'PLACE') {
-    nextAIReserve = nextAIReserve.filter(p => p.id !== action.pieceId);
-    nextHumanReserve = nextHumanReserve.filter(p => p.id !== action.pieceId);
+    // Only deduct from the reserve that actually contains the placed piece.
+    if (aiReserve.some(p => p.id === action.pieceId)) {
+      nextAIReserve = aiReserve.filter(p => p.id !== action.pieceId);
+    } else {
+      nextHumanReserve = humanReserve.filter(p => p.id !== action.pieceId);
+    }
 
     const newPiece: Piece = {
       id: action.pieceId,

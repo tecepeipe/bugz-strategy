@@ -283,9 +283,26 @@ export function getValidMovesForPiece(
   const effectiveBugTypes = getEffectiveBugTypes(board, fromHex, topPiece, expansions);
   const validDestinations = new Set<string>();
 
+  // Build a board without the moving piece so we can verify each
+  // destination stays connected to the swarm (one-hive rule).
+  const boardWithoutPiece = cloneBoard(board);
+  const fromStack = boardWithoutPiece.get(hexKey(fromHex.q, fromHex.r));
+  if (fromStack) {
+    if (fromStack.length > 1) fromStack.pop();
+    else boardWithoutPiece.delete(hexKey(fromHex.q, fromHex.r));
+  }
+
   for (const bugType of effectiveBugTypes) {
     const dests = getMovesForBugType(board, fromHex, bugType, player);
-    dests.forEach(d => validDestinations.add(hexKey(d.q, d.r)));
+    for (const dest of dests) {
+      // Every destination must touch at least one other piece in the
+      // remaining swarm. Sliding moves (Queen, Spider, Ant) already
+      // check this inside isValidGroundSlide, but jumping / climbing
+      // moves (Grasshopper, Beetle, Ladybug) do not.
+      if (getAllNeighbors(dest).some(n => isOccupied(boardWithoutPiece, n))) {
+        validDestinations.add(hexKey(dest.q, dest.r));
+      }
+    }
   }
 
   return Array.from(validDestinations).map(key => {

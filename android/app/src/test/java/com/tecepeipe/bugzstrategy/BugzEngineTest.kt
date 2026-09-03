@@ -2,6 +2,7 @@ package com.tecepeipe.bugzstrategy
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -255,5 +256,169 @@ class BugzEngineTest {
         assertTrue(status.isGameOver)
         assertEquals(Player.TWO, status.winner)
         assertEquals(6, status.p1QueenSurroundedCount)
+    }
+
+    // --- simulateAction reserve deduction ---
+
+    @Test
+    fun `simulateAction deducts from AI reserve only when AI places`() {
+        val aiReserve = listOf(
+            Piece("p1_QUEEN_0", BugType.QUEEN, Player.ONE),
+            Piece("p1_SPIDER_0", BugType.SPIDER, Player.ONE),
+        )
+        val humanReserve = listOf(
+            Piece("p2_QUEEN_0", BugType.QUEEN, Player.TWO),
+            Piece("p2_SPIDER_0", BugType.SPIDER, Player.TWO),
+        )
+
+        val action = MoveAction(
+            MoveAction.ActionType.PLACE,
+            "p1_QUEEN_0", BugType.QUEEN, Player.ONE,
+            toHex = AxialHex(0, 0),
+        )
+
+        val (_, nextAI, nextHuman) = simulateAction(
+            emptyMap(), action, Player.ONE, aiReserve, humanReserve,
+        )
+
+        assertEquals(1, nextAI.size)
+        assertEquals("p1_SPIDER_0", nextAI[0].id)
+        assertEquals(2, nextHuman.size) // Human reserve untouched
+    }
+
+    @Test
+    fun `simulateAction deducts from human reserve only when human places`() {
+        val aiReserve = listOf(
+            Piece("p1_QUEEN_0", BugType.QUEEN, Player.ONE),
+        )
+        val humanReserve = listOf(
+            Piece("p2_QUEEN_0", BugType.QUEEN, Player.TWO),
+            Piece("p2_SPIDER_0", BugType.SPIDER, Player.TWO),
+        )
+
+        val action = MoveAction(
+            MoveAction.ActionType.PLACE,
+            "p2_QUEEN_0", BugType.QUEEN, Player.TWO,
+            toHex = AxialHex(1, 0),
+        )
+
+        val (_, nextAI, nextHuman) = simulateAction(
+            emptyMap(), action, Player.TWO, aiReserve, humanReserve,
+        )
+
+        assertEquals(1, nextAI.size) // AI reserve untouched
+        assertEquals(1, nextHuman.size)
+        assertEquals("p2_SPIDER_0", nextHuman[0].id)
+    }
+
+    @Test
+    fun `simulateAction does not touch reserves on MOVE action`() {
+        val aiReserve = listOf(Piece("p1_QUEEN_0", BugType.QUEEN, Player.ONE))
+        val humanReserve = listOf(Piece("p2_QUEEN_0", BugType.QUEEN, Player.TWO))
+
+        val board = mapOf("0,0" to listOf(Piece("p1_SPIDER_0", BugType.SPIDER, Player.ONE)))
+        val action = MoveAction(
+            MoveAction.ActionType.MOVE,
+            "p1_SPIDER_0", BugType.SPIDER, Player.ONE,
+            fromHex = AxialHex(0, 0), toHex = AxialHex(1, 0),
+        )
+
+        val (_, nextAI, nextHuman) = simulateAction(
+            board, action, Player.ONE, aiReserve, humanReserve,
+        )
+
+        assertEquals(1, nextAI.size)
+        assertEquals(1, nextHuman.size)
+    }
+
+    // --- evaluateBoard reserve bonus ---
+
+    @Test
+    fun `evaluateBoard rewards having more reserve pieces`() {
+        val engine = BugzEngine()
+        engine.initNewGame(ExpansionsConfig())
+
+        val p1Queen = engine.p1Reserve.first { it.type == BugType.QUEEN }
+        engine.executeMove(
+            MoveAction(MoveAction.ActionType.PLACE, p1Queen.id, BugType.QUEEN, Player.ONE, toHex = AxialHex(0, 0)),
+        )
+        val p2Queen = engine.p2Reserve.first { it.type == BugType.QUEEN }
+        engine.executeMove(
+            MoveAction(MoveAction.ActionType.PLACE, p2Queen.id, BugType.QUEEN, Player.TWO, toHex = AxialHex(1, 0)),
+        )
+
+        val fullAIReserve = engine.p1Reserve
+        val fullHumanReserve = engine.p2Reserve
+
+        val scoreBigAIReserve = evaluateBoard(
+            engine.board, Player.ONE,
+            fullAIReserve, fullHumanReserve.drop(5),
+            2, 2, ExpansionsConfig(),
+        )
+        val scoreSmallAIReserve = evaluateBoard(
+            engine.board, Player.ONE,
+            fullAIReserve.drop(5), fullHumanReserve,
+            2, 2, ExpansionsConfig(),
+        )
+
+        assertTrue("AI with more reserve should score higher", scoreBigAIReserve > scoreSmallAIReserve)
+    }
+
+    // --- minimax avoids instant loss ---
+
+    @Test
+    fun `hard AI avoids moves that let opponent win immediately`() {
+        // Build a board where P1 queen is nearly surrounded (5 of 6).
+        // It's P2 (AI)'s turn. P2 has a spider that if placed at the wrong spot
+        // would not win, but if moved to the 6th hex would surround P1 and win.
+        // However, if P2 moves a piece AWAY from a neighbor of P2's own queen,
+        // P1 could win next turn. The AI must avoid that.
+        val engine = BugzEngine()
+        engine.initNewGame(ExpansionsConfig(mosquito = false, ladybug = false, pillbug = false))
+
+        // Place P1 queen at (0,0)
+        val p1Q = engine.p1Reserve.first { it.type == BugType.QUEEN }
+        engine.executeMove(MoveAction(MoveAction.ActionType.PLACE, p1Q.id, BugType.QUEEN, Player.ONE, toHex = AxialHex(0, 0)))
+
+        // Place P2 queen at (2, -1) — far from P1
+        val p2Q = engine.p2Reserve.first { it.type == BugType.QUEEN }
+        engine.executeMove(MoveAction(MoveAction.ActionType.PLACE, p2Q.id, BugType.QUEEN, Player.TWO, toHex = AxialHex(2, -1)))
+
+        // Surround P1 queen with 5 P2 pieces
+        val p1Neighbors = AxialHex(0, 0).getNeighbors()
+        val p2NonQueen = engine.p2Reserve.filter { it.type != BugType.QUEEN }.toMutableList()
+        for (i in 0 until 5) {
+            if (engine.currentPlayer != Player.ONE) engine.switchTurn()
+            val filler = engine.p1Reserve.firstOrNull { it.type == BugType.SPIDER }
+            if (filler != null) {
+                engine.executeMove(MoveAction(MoveAction.ActionType.PLACE, filler.id, BugType.SPIDER, Player.ONE, toHex = AxialHex(3, 0)))
+            }
+            if (engine.currentPlayer != Player.TWO) engine.switchTurn()
+            val piece = p2NonQueen.removeAt(0)
+            engine.executeMove(MoveAction(MoveAction.ActionType.PLACE, piece.id, piece.type, Player.TWO, toHex = p1Neighbors[i]))
+        }
+
+        // P1 queen should have 5 neighbors occupied, 1 empty
+        val p1SurroundCount = p1Neighbors.count { isOccupied(engine.board, it) }
+        assertEquals(5, p1SurroundCount)
+
+        // The empty hex is the one P2 could place on to win.
+        // Now it's P2's turn (AI). Hard AI should pick a winning move.
+        val aiReserve = engine.reserveFor(Player.TWO)
+        val humanReserve = engine.reserveFor(Player.ONE)
+        val action = computeHardMinimaxMove(
+            engine.board, Player.TWO, aiReserve, humanReserve,
+            engine.turnCountFor(Player.TWO), engine.turnCountFor(Player.ONE),
+            engine.legalActions(), engine.lastMovedPieceId, ExpansionsConfig(mosquito = false, ladybug = false, pillbug = false),
+        )
+
+        assertNotNull("AI should find a move", action)
+        // Verify the AI picks a move that results in P1 queen surrounded
+        if (action != null) {
+            val (nextBoard, _, _) = simulateAction(engine.board, action, Player.TWO, aiReserve, humanReserve)
+            val status = checkGameStatus(nextBoard)
+            assertTrue("Hard AI should win (surround P1 queen)", status.isGameOver)
+            assertEquals(Player.TWO, status.winner)
+        }
     }
 }
