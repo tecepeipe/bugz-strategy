@@ -70,7 +70,9 @@ export function computeAIMove(
   }
 }
 
-// Easy AI: Selects random legal move, prioritizing placing Queen on turns 3 or 4 if not placed yet
+// Easy AI: Mostly random but with basic common sense — prefer placing
+// pieces from reserve over shuffling existing ones, and always place the
+// Queen by turn 4.
 function computeEasyMove(
   board: BoardState,
   aiPlayer: Player,
@@ -85,10 +87,18 @@ function computeEasyMove(
     }
   }
 
+  // Prefer placing pieces from reserve (develop the board) with some randomness.
+  const placeActions = legalActions.filter(a => a.type === 'PLACE');
+  if (placeActions.length > 0 && Math.random() < 0.7) {
+    return placeActions[Math.floor(Math.random() * placeActions.length)];
+  }
+
   return legalActions[Math.floor(Math.random() * legalActions.length)];
 }
 
-// Medium AI: Greedy evaluation of board state
+// Medium AI: Greedy 1-ply evaluation with moderate weights and a
+// development bonus so the AI places pieces from reserve instead of just
+// shuffling the queen around.
 function computeMediumMove(
   board: BoardState,
   aiPlayer: Player,
@@ -112,7 +122,7 @@ function computeMediumMove(
       humanReserve
     );
 
-    const score = evaluateBoard(
+    let score = evaluateBoardMedium(
       nextBoard,
       aiPlayer,
       nextAIReserve,
@@ -121,6 +131,16 @@ function computeMediumMove(
       turnCountHuman,
       expansions
     );
+
+    // Development bonus: placing pieces from reserve is strongly preferred
+    // in the early/mid game. Without this the AI just shuffles its queen
+    // because the defensive score from escaping adjacency outweighs the
+    // modest positional gain of a new placement.
+    if (action.type === 'PLACE' && aiReserve.length > 2) {
+      score += 150;
+    } else if (action.type === 'PLACE' && aiReserve.length > 0) {
+      score += 60;
+    }
 
     if (score > bestScore + 1e-9) {
       bestScore = score;
@@ -397,6 +417,82 @@ function evaluateBoard(
       } else if (topPiece.player === humanPlayer && pinnedPiece.player === aiPlayer) {
         score -= 90; // Human beetle pinning AI piece!
         if (pinnedPiece.type === 'QUEEN') score -= 250;
+      }
+    }
+  }
+
+  return score;
+}
+
+// Medium-difficulty board evaluation: same structure as hard but with
+// moderate weights.  Attack still outweighs defence, but the margin is
+// smaller and there are no progressive "getting close" bonuses, making
+// the AI less single-minded about rushing the enemy queen.
+function evaluateBoardMedium(
+  board: BoardState,
+  aiPlayer: Player,
+  aiReserve: Piece[],
+  humanReserve: Piece[],
+  turnAI: number,
+  turnHuman: number,
+  expansions: ExpansionsConfig
+): number {
+  const humanPlayer: Player = aiPlayer === 1 ? 2 : 1;
+
+  const status = checkGameStatus(board);
+  if (status.isGameOver) {
+    if (status.winner === aiPlayer) return 10000;
+    if (status.winner === humanPlayer) return -10000;
+    return 0;
+  }
+
+  const aiQueenHex = getQueenHex(board, aiPlayer);
+  const humanQueenHex = getQueenHex(board, humanPlayer);
+
+  let score = 0;
+
+  // Attack — moderate weights, less aggressive than hard
+  if (humanQueenHex) {
+    const neighbors = getAllNeighbors(humanQueenHex);
+    const aiAdjacent = neighbors.filter(n => getTopPiece(board, n)?.player === aiPlayer).length;
+    const anyOccupied = neighbors.filter(n => isOccupied(board, n)).length;
+    score += aiAdjacent * 180;
+    score += (anyOccupied - aiAdjacent) * 35;
+    if (anyOccupied === 5) score += 350;
+  } else {
+    score += turnHuman >= 3 ? 25 : 8;
+  }
+
+  // Defence — slightly below attack so AI doesn't turtle
+  if (aiQueenHex) {
+    const neighbors = getAllNeighbors(aiQueenHex);
+    const enemyAdjacent = neighbors.filter(n => getTopPiece(board, n)?.player === humanPlayer).length;
+    const anyOccupied = neighbors.filter(n => isOccupied(board, n)).length;
+    const ownAdjacent = anyOccupied - enemyAdjacent;
+    score -= enemyAdjacent * 150;
+    if (anyOccupied === 5) score -= 350;
+    score += ownAdjacent * 12;
+  } else {
+    score -= turnAI >= 3 ? 50 : 12;
+  }
+
+  // Reserve / mobility
+  score += aiReserve.length * 18;
+  score -= humanReserve.length * 18;
+
+  // Pinning
+  const occupiedHexes = getAllOccupiedHexes(board);
+  for (const hex of occupiedHexes) {
+    const stack = board.get(hexKey(hex.q, hex.r))!;
+    if (stack.length > 1) {
+      const topPiece = stack[stack.length - 1];
+      const pinnedPiece = stack[stack.length - 2];
+      if (topPiece.player === aiPlayer && pinnedPiece.player === humanPlayer) {
+        score += 60;
+        if (pinnedPiece.type === 'QUEEN') score += 150;
+      } else if (topPiece.player === humanPlayer && pinnedPiece.player === aiPlayer) {
+        score -= 70;
+        if (pinnedPiece.type === 'QUEEN') score -= 200;
       }
     }
   }

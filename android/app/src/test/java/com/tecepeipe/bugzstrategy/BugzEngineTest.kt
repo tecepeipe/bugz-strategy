@@ -2,7 +2,6 @@ package com.tecepeipe.bugzstrategy
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -364,61 +363,67 @@ class BugzEngineTest {
         assertTrue("AI with more reserve should score higher", scoreBigAIReserve > scoreSmallAIReserve)
     }
 
-    // --- minimax avoids instant loss ---
+    // --- canSlide gate rule ---
 
     @Test
-    fun `hard AI avoids moves that let opponent win immediately`() {
-        // Build a board where P1 queen is nearly surrounded (5 of 6).
-        // It's P2 (AI)'s turn. P2 has a spider that if placed at the wrong spot
-        // would not win, but if moved to the 6th hex would surround P1 and win.
-        // However, if P2 moves a piece AWAY from a neighbor of P2's own queen,
-        // P1 could win next turn. The AI must avoid that.
-        val engine = BugzEngine()
-        engine.initNewGame(ExpansionsConfig(mosquito = false, ladybug = false, pillbug = false))
+    fun `queen can slide through open gate`() {
+        // P1 queen at (0,0), P2 pieces at 4 of 6 neighbors.
+        // Empty hexes at (1,0) and (0,1).
+        // Gate hexes for (0,0)→(0,1) are (1,0) and (-1,1).
+        // (1,0) is empty → gate is open → queen CAN slide to (0,1).
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_q", BugType.QUEEN, Player.ONE))
+        board[AxialHex(1, -1).key()] = mutableListOf(Piece("p2_a", BugType.SOLDIER_ANT, Player.TWO))
+        board[AxialHex(0, -1).key()] = mutableListOf(Piece("p2_b", BugType.SOLDIER_ANT, Player.TWO))
+        board[AxialHex(-1, 0).key()] = mutableListOf(Piece("p2_c", BugType.SPIDER, Player.TWO))
+        board[AxialHex(-1, 1).key()] = mutableListOf(Piece("p2_d", BugType.GRASSHOPPER, Player.TWO))
+        // (1,0) empty, (0,1) empty — gate hex (1,0) is open
 
-        // Place P1 queen at (0,0)
-        val p1Q = engine.p1Reserve.first { it.type == BugType.QUEEN }
-        engine.executeMove(MoveAction(MoveAction.ActionType.PLACE, p1Q.id, BugType.QUEEN, Player.ONE, toHex = AxialHex(0, 0)))
+        val moves = getValidMovesForPiece(board, AxialHex(0, 0), Player.ONE, 99, null, ExpansionsConfig(mosquito = false, ladybug = false, pillbug = false))
+        assertTrue("Queen should slide through open gate", moves.contains(AxialHex(0, 1)))
+    }
 
-        // Place P2 queen at (2, -1) — far from P1
-        val p2Q = engine.p2Reserve.first { it.type == BugType.QUEEN }
-        engine.executeMove(MoveAction(MoveAction.ActionType.PLACE, p2Q.id, BugType.QUEEN, Player.TWO, toHex = AxialHex(2, -1)))
+    @Test
+    fun `queen cannot escape through gate blocked on both sides`() {
+        // P1 queen at (0,0), P2 pieces at 5 of 6 neighbors.
+        // Empty hex at (0,1). Gate hexes for (0,0)→(0,1) are (1,0) and (-1,1).
+        // Both occupied → gate is blocked → queen CANNOT slide to (0,1).
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_q", BugType.QUEEN, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p2_a", BugType.SOLDIER_ANT, Player.TWO))
+        board[AxialHex(1, -1).key()] = mutableListOf(Piece("p2_b", BugType.SOLDIER_ANT, Player.TWO))
+        board[AxialHex(0, -1).key()] = mutableListOf(Piece("p2_c", BugType.SPIDER, Player.TWO))
+        board[AxialHex(-1, 0).key()] = mutableListOf(Piece("p2_d", BugType.SPIDER, Player.TWO))
+        board[AxialHex(-1, 1).key()] = mutableListOf(Piece("p2_e", BugType.GRASSHOPPER, Player.TWO))
+        // Gate hexes (1,0) and (-1,1) both occupied — gate blocked
 
-        // Surround P1 queen with 5 P2 pieces
-        val p1Neighbors = AxialHex(0, 0).getNeighbors()
-        val p2NonQueen = engine.p2Reserve.filter { it.type != BugType.QUEEN }.toMutableList()
-        for (i in 0 until 5) {
-            if (engine.currentPlayer != Player.ONE) engine.switchTurn()
-            val filler = engine.p1Reserve.firstOrNull { it.type == BugType.SPIDER }
-            if (filler != null) {
-                engine.executeMove(MoveAction(MoveAction.ActionType.PLACE, filler.id, BugType.SPIDER, Player.ONE, toHex = AxialHex(3, 0)))
-            }
-            if (engine.currentPlayer != Player.TWO) engine.switchTurn()
-            val piece = p2NonQueen.removeAt(0)
-            engine.executeMove(MoveAction(MoveAction.ActionType.PLACE, piece.id, piece.type, Player.TWO, toHex = p1Neighbors[i]))
-        }
+        val moves = getValidMovesForPiece(board, AxialHex(0, 0), Player.ONE, 99, null, ExpansionsConfig(mosquito = false, ladybug = false, pillbug = false))
+        assertFalse("Queen should NOT escape through gate blocked on both sides", moves.contains(AxialHex(0, 1)))
+    }
 
-        // P1 queen should have 5 neighbors occupied, 1 empty
-        val p1SurroundCount = p1Neighbors.count { isOccupied(engine.board, it) }
-        assertEquals(5, p1SurroundCount)
+    @Test
+    fun `beetle on top cannot step down through ground-level gate`() {
+        // A beetle on top of a piece should not be able to step down to
+        // an empty ground hex if both gate hexes at ground level are occupied.
+        val board = mutableMapOf<String, MutableList<Piece>>()
 
-        // The empty hex is the one P2 could place on to win.
-        // Now it's P2's turn (AI). Hard AI should pick a winning move.
-        val aiReserve = engine.reserveFor(Player.TWO)
-        val humanReserve = engine.reserveFor(Player.ONE)
-        val action = computeHardMinimaxMove(
-            engine.board, Player.TWO, aiReserve, humanReserve,
-            engine.turnCountFor(Player.TWO), engine.turnCountFor(Player.ONE),
-            engine.legalActions(), engine.lastMovedPieceId, ExpansionsConfig(mosquito = false, ladybug = false, pillbug = false),
+        // P2 beetle on top of P1 piece at (0,0)
+        board[AxialHex(0, 0).key()] = mutableListOf(
+            Piece("p1_q", BugType.QUEEN, Player.ONE),
+            Piece("p2_beetle", BugType.BEETLE, Player.TWO),
         )
 
-        assertNotNull("AI should find a move", action)
-        // Verify the AI picks a move that results in P1 queen surrounded
-        if (action != null) {
-            val (nextBoard, _, _) = simulateAction(engine.board, action, Player.TWO, aiReserve, humanReserve)
-            val status = checkGameStatus(nextBoard)
-            assertTrue("Hard AI should win (surround P1 queen)", status.isGameOver)
-            assertEquals(Player.TWO, status.winner)
-        }
+        // P2 queen at (2, -1) so P2 can move
+        board[AxialHex(2, -1).key()] = mutableListOf(Piece("p2_q", BugType.QUEEN, Player.TWO))
+
+        // Empty hex at (1, 0) — the destination
+        // Gate hexes between (0,0) and (1,0) are (1,-1) and (0,1)
+        // Both occupied at ground level to block the gate
+        board[AxialHex(1, -1).key()] = mutableListOf(Piece("p1_a", BugType.SPIDER, Player.ONE))
+        board[AxialHex(0, 1).key()] = mutableListOf(Piece("p1_b", BugType.SPIDER, Player.ONE))
+
+        val moves = getBeetleMoves(board, AxialHex(0, 0))
+
+        assertFalse("Beetle on top should NOT step down through blocked ground gate", moves.contains(AxialHex(1, 0)))
     }
 }

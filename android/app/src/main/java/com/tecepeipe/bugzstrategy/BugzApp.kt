@@ -1056,7 +1056,7 @@ fun canSlide(
     board: Map<String, List<Piece>>,
     fromHex: AxialHex,
     toHex: AxialHex,
-    atHeight: Int = 0,
+    @Suppress("UNUSED_PARAMETER") atHeight: Int = 0,
 ): Boolean {
     val common = getCommonNeighbors(fromHex, toHex)
     if (common.size != 2) return false
@@ -1064,9 +1064,14 @@ fun canSlide(
     val h1 = getStackHeight(board, common[0])
     val h2 = getStackHeight(board, common[1])
 
-    val maxAllowedHeight = maxOf(atHeight, getStackHeight(board, fromHex) - 1, getStackHeight(board, toHex))
+    // Gate clearance is the LOWER of the source and destination levels.
+    // When stepping down the gate is checked at ground level; when
+    // crawling on top of the hive it is checked at the current level.
+    val fromLevel = getStackHeight(board, fromHex) - 1
+    val toLevel = getStackHeight(board, toHex)
+    val gateLevel = minOf(fromLevel, toLevel)
 
-    if (h1 > maxAllowedHeight && h2 > maxAllowedHeight) {
+    if (h1 > gateLevel && h2 > gateLevel) {
         return false
     }
     return true
@@ -1215,9 +1220,9 @@ fun getBeetleMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Axi
     for (to in fromHex.getNeighbors()) {
         val targetHeight = getStackHeight(board, to)
 
+        // Climbing, moving on top, or stepping down — check the gate
         if (targetHeight >= 1 || currentHeight > 1) {
-            val clearanceHeight = maxOf(currentHeight - 1, targetHeight)
-            if (canSlide(board, fromHex, to, clearanceHeight)) {
+            if (canSlide(board, fromHex, to)) {
                 moves.add(to)
             }
         } else {
@@ -1274,17 +1279,17 @@ fun getLadybugMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Ax
     val results = mutableSetOf<String>()
 
     val step1Candidates = fromHex.getNeighbors().filter { n ->
-        isOccupied(board, n) && canSlide(board, fromHex, n, 0)
+        isOccupied(board, n) && canSlide(board, fromHex, n)
     }
 
     for (s1 in step1Candidates) {
         val step2Candidates = s1.getNeighbors().filter { s2 ->
-            s2.key() != fromHex.key() && isOccupied(board, s2) && canSlide(board, s1, s2, 1)
+            s2.key() != fromHex.key() && isOccupied(board, s2) && canSlide(board, s1, s2)
         }
 
         for (s2 in step2Candidates) {
             val step3Candidates = s2.getNeighbors().filter { s3 ->
-                s3.key() != s1.key() && !isOccupied(board, s3) && canSlide(board, s2, s3, 0)
+                s3.key() != s1.key() && !isOccupied(board, s3) && canSlide(board, s2, s3)
             }
 
             for (s3 in step3Candidates) {
@@ -1409,7 +1414,8 @@ fun getPillbugSpecialTargets(
                 // Pillbug's own hex) with a stack height of 2+ blocks passage.
                 val reachableDestinations = emptyAdjacentHexes.filter { destHex ->
                     val gateHexes = getCommonNeighbors(adjHex, destHex).filter { it != pillbugHex }
-                    !gateHexes.any { getStackHeight(board, it) >= 2 }
+                    val gateBlocked = gateHexes.isNotEmpty() && gateHexes.all { getStackHeight(board, it) >= 2 }
+                    !gateBlocked
                 }
 
                 if (reachableDestinations.isNotEmpty()) {
@@ -1961,6 +1967,12 @@ fun computeEasyMove(
         }
     }
 
+    // Prefer placing pieces from reserve (develop the board) with some randomness.
+    val placeActions = legalActions.filter { it.type == MoveAction.ActionType.PLACE }
+    if (placeActions.isNotEmpty() && Math.random() < 0.7) {
+        return placeActions[Math.floor(Math.random() * placeActions.size).toInt()]
+    }
+
     return legalActions[Math.floor(Math.random() * legalActions.size).toInt()]
 }
 
@@ -1987,7 +1999,7 @@ fun computeMediumMove(
             humanReserve,
         )
 
-        val score = evaluateBoard(
+        var score = evaluateBoardMedium(
             nextBoard,
             aiPlayer,
             nextAIReserve,
@@ -1996,6 +2008,16 @@ fun computeMediumMove(
             turnCountHuman,
             expansions,
         )
+
+        // Development bonus: placing pieces from reserve is strongly preferred
+        // in the early/mid game. Without this the AI just shuffles its queen
+        // because the defensive score from escaping adjacency outweighs the
+        // modest positional gain of a new placement.
+        if (action.type == MoveAction.ActionType.PLACE && aiReserve.size > 2) {
+            score += 150.0
+        } else if (action.type == MoveAction.ActionType.PLACE && aiReserve.size > 0) {
+            score += 60.0
+        }
 
         if (score > bestScore + 1e-9) {
             bestScore = score
@@ -2243,6 +2265,82 @@ fun evaluateBoard(
             } else if (topPiece.player == humanPlayer && pinnedPiece.player == aiPlayer) {
                 score -= 90
                 if (pinnedPiece.type == BugType.QUEEN) score -= 250
+            }
+        }
+    }
+
+    return score
+}
+
+// Medium-difficulty board evaluation: same structure as hard but with
+// moderate weights.  Attack still outweighs defence, but the margin is
+// smaller and there are no progressive "getting close" bonuses, making
+// the AI less single-minded about rushing the enemy queen.
+fun evaluateBoardMedium(
+    board: Map<String, List<Piece>>,
+    aiPlayer: Player,
+    aiReserve: List<Piece>,
+    humanReserve: List<Piece>,
+    turnAI: Int,
+    turnHuman: Int,
+    @Suppress("UNUSED_PARAMETER") expansions: ExpansionsConfig,
+): Double {
+    val humanPlayer = if (aiPlayer == Player.ONE) Player.TWO else Player.ONE
+
+    val status = checkGameStatus(board)
+    if (status.isGameOver) {
+        if (status.winner == aiPlayer) return 10000.0
+        if (status.winner == humanPlayer) return -10000.0
+        return 0.0
+    }
+
+    val aiQueenHex = getQueenHex(board, aiPlayer)
+    val humanQueenHex = getQueenHex(board, humanPlayer)
+
+    var score = 0.0
+
+    // Attack — moderate weights, less aggressive than hard
+    if (humanQueenHex != null) {
+        val neighbors = humanQueenHex.getNeighbors()
+        val aiAdjacent = neighbors.count { getTopPiece(board, it)?.player == aiPlayer }
+        val anyOccupied = neighbors.count { isOccupied(board, it) }
+        score += aiAdjacent * 180
+        score += (anyOccupied - aiAdjacent) * 35
+        if (anyOccupied == 5) score += 350
+    } else {
+        score += if (turnHuman >= 3) 25 else 8
+    }
+
+    // Defence — slightly below attack so AI doesn't turtle
+    if (aiQueenHex != null) {
+        val neighbors = aiQueenHex.getNeighbors()
+        val enemyAdjacent = neighbors.count { getTopPiece(board, it)?.player == humanPlayer }
+        val anyOccupied = neighbors.count { isOccupied(board, it) }
+        val ownAdjacent = anyOccupied - enemyAdjacent
+        score -= enemyAdjacent * 150
+        if (anyOccupied == 5) score -= 350
+        score += ownAdjacent * 12
+    } else {
+        score -= if (turnAI >= 3) 50 else 12
+    }
+
+    // Reserve / mobility
+    score += aiReserve.size * 18
+    score -= humanReserve.size * 18
+
+    // Pinning
+    val occupiedHexes = getAllOccupiedHexes(board)
+    for (hex in occupiedHexes) {
+        val stack = board[hex.key()]
+        if (stack != null && stack.size > 1) {
+            val topPiece = stack[stack.size - 1]
+            val pinnedPiece = stack[stack.size - 2]
+            if (topPiece.player == aiPlayer && pinnedPiece.player == humanPlayer) {
+                score += 60
+                if (pinnedPiece.type == BugType.QUEEN) score += 150
+            } else if (topPiece.player == humanPlayer && pinnedPiece.player == aiPlayer) {
+                score -= 70
+                if (pinnedPiece.type == BugType.QUEEN) score -= 200
             }
         }
     }

@@ -135,14 +135,22 @@ export function canRemovePieceWithoutBreakingSwarm(board: BoardState, fromHex: A
 }
 
 /**
- * Freedom to Move (Slide) check between two adjacent hexes at height level `atHeight`.
- * Slide is blocked if BOTH flanking common neighbors have stack height >= `atHeight + 1`.
+ * Freedom to Move (Slide) check between two adjacent hexes.
+ * The gate is formed by the two common neighbors of fromHex and toHex.
+ * A slide is blocked if BOTH gate hexes have stack height greater than the
+ * gate clearance level.
+ *
+ * The gate clearance is the LOWER of the source and destination levels.
+ * When stepping down, the gate is checked at ground level; when crawling
+ * on top of the hive, it is checked at the current level.  This enforces
+ * the physical rule that a piece must be able to fit through the gap at
+ * the narrowest transition point.
  */
 export function canSlide(
   board: BoardState,
   fromHex: AxialHex,
   toHex: AxialHex,
-  atHeight: number = 0
+  _atHeight?: number
 ): boolean {
   const common = getCommonNeighbors(fromHex, toHex);
   if (common.length !== 2) return false;
@@ -150,10 +158,11 @@ export function canSlide(
   const h1 = getStackHeight(board, common[0]);
   const h2 = getStackHeight(board, common[1]);
 
-  const maxAllowedHeight = Math.max(atHeight, getStackHeight(board, fromHex) - 1, getStackHeight(board, toHex));
+  const fromLevel = getStackHeight(board, fromHex) - 1;
+  const toLevel = getStackHeight(board, toHex);
+  const gateLevel = Math.min(fromLevel, toLevel);
 
-  // Gate is blocked if BOTH neighbors are strictly higher than max clearance
-  if (h1 > maxAllowedHeight && h2 > maxAllowedHeight) {
+  if (h1 > gateLevel && h2 > gateLevel) {
     return false;
   }
 
@@ -437,15 +446,13 @@ function getBeetleMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   for (const to of neighbors) {
     const targetHeight = getStackHeight(board, to);
 
-    // Case A: Stepping UP onto swarm or moving ON TOP of swarm
+    // Climbing, moving on top, or stepping down — check the gate
     if (targetHeight >= 1 || currentHeight > 1) {
-      // Check gate clearance at current / target height
-      const clearanceHeight = Math.max(currentHeight - 1, targetHeight);
-      if (canSlide(board, fromHex, to, clearanceHeight)) {
+      if (canSlide(board, fromHex, to)) {
         moves.push(to);
       }
     }
-    // Case B: Ground slide
+    // Ground slide (beetle at ground level to empty ground hex)
     else {
       if (isValidGroundSlide(board, fromHex, to)) {
         moves.push(to);
@@ -513,7 +520,7 @@ function getLadybugMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
 
   // Step 1: Climb onto an adjacent occupied hex
   const step1Candidates = getAllNeighbors(fromHex).filter(
-    n => isOccupied(board, n) && canSlide(board, fromHex, n, 0)
+    n => isOccupied(board, n) && canSlide(board, fromHex, n)
   );
 
   for (const s1 of step1Candidates) {
@@ -522,7 +529,7 @@ function getLadybugMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
       s2 =>
         !isSameHex(s2, fromHex) &&
         isOccupied(board, s2) &&
-        canSlide(board, s1, s2, 1)
+        canSlide(board, s1, s2)
     );
 
     for (const s2 of step2Candidates) {
@@ -531,7 +538,7 @@ function getLadybugMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
         s3 =>
           !isSameHex(s3, s1) &&
           !isOccupied(board, s3) &&
-          canSlide(board, s2, s3, 0)
+          canSlide(board, s2, s3)
       );
 
       for (const s3 of step3Candidates) {
@@ -605,12 +612,13 @@ export function getPillbugSpecialTargets(
         // Official "Beetle gate" rule: the piece is lifted over the Pillbug to
         // reach its destination; a gate hex (a common neighbor of the origin
         // and destination other than the Pillbug's own hex) with a stack height
-        // of 2+ blocks the passage.
+        // of 2+ blocks the passage. The gate is only blocked if ALL non-Pillbug
+        // gate hexes are stacked (height >= 2).
         const reachableDestinations = emptyAdjacentHexes.filter(destHex => {
           const gateHexes = getCommonNeighbors(adjHex, destHex).filter(
             g => !isSameHex(g, pillbugHex)
           );
-          const gateBlocked = gateHexes.some(g => getStackHeight(board, g) >= 2);
+          const gateBlocked = gateHexes.length > 0 && gateHexes.every(g => getStackHeight(board, g) >= 2);
           return !gateBlocked;
         });
 
