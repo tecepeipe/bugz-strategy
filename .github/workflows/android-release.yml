@@ -1,0 +1,46 @@
+name: Build and Release Android APK
+
+on:
+  push:
+    tags:
+      - 'v*-android' # Triggers the workflow only when an Android tag starting with 'v' is pushed (e.g., v1.2.0-android)
+
+jobs:
+  build:
+    name: Build and Release APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create the release and upload assets
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant Execute Permission to Gradlew
+        run: chmod +x gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      - name: Sign APK (Optional)
+        # Note: If your build.gradle is already configured to sign your release build, 
+        # you can remove or skip step 3 entirely. Otherwise, your APK will be unsigned.
+        run: echo "Building release APK..."
+
+      - name: Create GitHub Release and Upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true # Automatically generates release notes from commit history
+          files: |
+            app/build/outputs/apk/release/*.apk
