@@ -512,9 +512,25 @@ fun getValidMovesForPiece(
     val effectiveBugTypes = getEffectiveBugTypes(board, fromHex, topPiece)
     val validDestinations = mutableSetOf<String>()
 
+    // Create board without the moving piece to check One Hive Rule for destinations
+    val boardWithoutPiece = cloneBoard(board)
+    val fromStack = boardWithoutPiece[fromHex.key()]
+    if (fromStack != null) {
+        if (fromStack.size == 1) {
+            boardWithoutPiece.remove(fromHex.key())
+        } else {
+            fromStack.removeAt(fromStack.size - 1)
+        }
+    }
+
     for (bugType in effectiveBugTypes) {
         val dests = getMovesForBugType(board, fromHex, bugType)
-        dests.forEach { validDestinations.add(it.key()) }
+        for (dest in dests) {
+            // Verify destination maintains hive connectivity (One Hive Rule)
+            if (dest.getNeighbors().any { isOccupied(boardWithoutPiece, it) }) {
+                validDestinations.add(dest.key())
+            }
+        }
     }
 
     return validDestinations.map { parseKey(it) }
