@@ -2,8 +2,11 @@ name: Build and Release Android APK
 
 on:
   push:
-    tags:
-      - 'v*-android' # Triggers the workflow only when an Android tag starting with 'v' is pushed (e.g., v1.2.0-android)
+    branches:
+      - main # Triggers on every commit to main branch
+  pull_request:
+    branches:
+      - main # Also triggers on PRs to main for validation
 
 jobs:
   build:
@@ -29,18 +32,14 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease
 
-      - name: Sign APK (Optional)
-        # Note: If your build.gradle is already configured to sign your release build, 
-        # you can remove or skip step 3 entirely. Otherwise, your APK will be unsigned.
-        run: echo "Building release APK..."
-
       - name: Create GitHub Release and Upload APK
         uses: softprops/action-gh-release@v2
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.sha }}
+          name: Auto-build ${{ github.sha }}
           draft: false
-          prerelease: false
-          generate_release_notes: true # Automatically generates release notes from commit history
+          prerelease: true
+          generate_release_notes: true
           files: |
             app/build/outputs/apk/release/*.apk
