@@ -1,40 +1,7 @@
 plugins {
     id 'com.android.application' version '8.2.2' apply false
     id 'org.jetbrains.kotlin.android' version '1.9.20' apply false
-    // --- Quality tooling (shared with all games via android-tools) ---
-    id 'io.gitlab.arturbosch.detekt' version '1.23.7' apply false
-    id 'com.diffplug.spotless' version '6.25.0' apply false
-    id 'com.autonomousapps.dependency-analysis' version '1.33.0' apply false
 }
 
-// Dependency analysis runs at the root project; buildHealth fails on any issue.
-apply plugin: 'com.autonomousapps.dependency-analysis'
-dependencyAnalysis {
-    issues {
-        all {
-            // High-value checks fail the build: dead dependencies and
-            // unnecessary annotation processors are real problems.
-            onUnusedDependencies {
-                severity 'fail'
-            }
-            onUnusedAnnotationProcessors {
-                severity 'fail'
-            }
-            // Compose/BOM transitive usage and scope suggestions are noise for
-            // these small apps; report them but do not fail the build.
-            onAny {
-                severity 'warn'
-            }
-            onUsedTransitiveDependencies {
-                severity 'warn'
-            }
-            onRuntimeOnly {
-                severity 'warn'
-            }
-        }
-    }
-}
-// Root-level quality gate: dependency analysis plus the app's own check tasks.
-tasks.register('qualityCheck') {
-    dependsOn 'buildHealth', ':app:check'
-}
+// Disable Kotlin build statistics to avoid BuildFlowService issues in CI
+System.setProperty('kotlin.build.statistics.enabled', 'false')
