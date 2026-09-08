@@ -380,7 +380,30 @@ function getMovesForBugType(
 // 1. Queen Bee: 1 ground slide step along perimeter
 function getQueenMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   const neighbors = getAllNeighbors(fromHex);
-  return neighbors.filter(to => isValidGroundSlide(board, fromHex, to));
+  const moves: AxialHex[] = [];
+  
+  for (const to of neighbors) {
+    // Destination must be empty
+    if (isOccupied(board, to)) continue;
+    
+    // Must be able to slide through the gate
+    if (!canSlide(board, fromHex, to, 0)) continue;
+    
+    // Must touch at least one other piece in the hive (excluding self)
+    const testBoard = cloneBoard(board);
+    const stack = testBoard.get(hexKey(fromHex.q, fromHex.r));
+    if (stack) {
+      if (stack.length === 1) testBoard.delete(hexKey(fromHex.q, fromHex.r));
+      else stack.pop();
+    }
+    
+    const touchingHive = getAllNeighbors(to).some(n => isOccupied(testBoard, n));
+    if (touchingHive) {
+      moves.push(to);
+    }
+  }
+  
+  return moves;
 }
 
 // 2. Spider: Exactly 3 steps around perimeter without backtracking
@@ -441,10 +464,22 @@ function getBeetleMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
         moves.push(to);
       }
     }
-    // Case B: Ground slide
-    else {
-      if (isValidGroundSlide(board, fromHex, to)) {
-        moves.push(to);
+    // Case B: Ground slide (only if currently on ground)
+    else if (currentHeight === 0) {
+      // Must be able to slide and destination must be empty
+      if (!isOccupied(board, to) && canSlide(board, fromHex, to, 0)) {
+        // Must touch at least one other piece in the hive (excluding self)
+        const testBoard = cloneBoard(board);
+        const stack = testBoard.get(hexKey(fromHex.q, fromHex.r));
+        if (stack) {
+          if (stack.length === 1) testBoard.delete(hexKey(fromHex.q, fromHex.r));
+          else stack.pop();
+        }
+        
+        const touchingHive = getAllNeighbors(to).some(n => isOccupied(testBoard, n));
+        if (touchingHive) {
+          moves.push(to);
+        }
       }
     }
   }
@@ -467,7 +502,18 @@ function getGrasshopperMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
     }
 
     if (countOver > 0) {
-      moves.push(current);
+      // Verify destination touches at least one piece in the hive (excluding self)
+      const testBoard = cloneBoard(board);
+      const stack = testBoard.get(hexKey(fromHex.q, fromHex.r));
+      if (stack) {
+        if (stack.length === 1) testBoard.delete(hexKey(fromHex.q, fromHex.r));
+        else stack.pop();
+      }
+      
+      const touchingHive = getAllNeighbors(current).some(n => isOccupied(testBoard, n));
+      if (touchingHive) {
+        moves.push(current);
+      }
     }
   }
 
