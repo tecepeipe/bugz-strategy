@@ -104,7 +104,7 @@ data class AxialHex(val q: Int, val r: Int) {
     )
 }
 
-enum class GameMode { PASS_AND_PLAY, AI }
+enum class GameMode { PASS_AND_PLAY, AI, TUTORIAL }
 enum class AIDifficulty { EASY, MEDIUM, HARD }
 
 data class ExpansionsConfig(
@@ -1267,6 +1267,8 @@ fun HiveApp() {
     var gameOver by remember { mutableStateOf<Player?>(null) }
     var isDraw by remember { mutableStateOf(false) }
 
+    val isTutorialMode = settings.mode == GameMode.TUTORIAL
+
     var selectedHex by remember { mutableStateOf<AxialHex?>(null) }
     var selectedReserveBug by remember { mutableStateOf<BugType?>(null) }
     var validDestinations by remember { mutableStateOf<List<AxialHex>>(emptyList()) }
@@ -1309,7 +1311,7 @@ fun HiveApp() {
     var executeMoveImpl: ((MoveAction) -> Unit)? = null
 
     fun requestAIMove() {
-        if (settings.mode != GameMode.AI) return
+        if (settings.mode != GameMode.AI && settings.mode != GameMode.TUTORIAL) return
         if (gameOver != null || isSetupOpen) return
         if (engine.currentPlayer != aiPlayer) return
         if (isAITurn) return
@@ -1319,6 +1321,10 @@ fun HiveApp() {
             delay(600)
 
             val humanPlayer: Player = if (aiPlayer == Player.ONE) Player.TWO else Player.ONE
+            
+            // In tutorial mode, use EASY difficulty and show hints
+            val difficulty = if (settings.mode == GameMode.TUTORIAL) AIDifficulty.EASY else settings.aiDifficulty
+            
             val action = computeAIMove(
                 engine.board,
                 aiPlayer,
@@ -1326,7 +1332,7 @@ fun HiveApp() {
                 engine.reserveFor(humanPlayer),
                 engine.turnCountFor(aiPlayer),
                 engine.turnCountFor(humanPlayer),
-                settings.aiDifficulty,
+                difficulty,
                 engine.lastMovedPieceId,
                 settings.expansions
             )
@@ -1456,7 +1462,7 @@ fun HiveApp() {
 
     fun handleHexClick(hex: AxialHex) {
         if (isAITurn || gameOver != null) return
-        if (settings.mode == GameMode.AI && engine.currentPlayer == aiPlayer) return
+        if ((settings.mode == GameMode.AI || settings.mode == GameMode.TUTORIAL) && engine.currentPlayer == aiPlayer) return
 
         val isDest = validDestinations.any { it.q == hex.q && it.r == hex.r }
         val isPillbugDest = pillbugDestinations.any { it.q == hex.q && it.r == hex.r }
@@ -1559,6 +1565,7 @@ fun HiveApp() {
                                 text = when {
                                     gameOver != null -> "Game Over"
                                     isAITurn -> "AI Thinking..."
+                                    settings.mode == GameMode.TUTORIAL -> "📚 Tutorial Mode"
                                     settings.mode == GameMode.AI -> "VS AI (${settings.aiDifficulty})"
                                     else -> "Pass & Play"
                                 },
@@ -2080,7 +2087,12 @@ fun SetupModal(
                     FilterChip(
                         selected = mode == GameMode.AI,
                         onClick = { mode = GameMode.AI },
-                        label = { Text("VS AI Engine") }
+                        label = { Text("VS AI") }
+                    )
+                    FilterChip(
+                        selected = mode == GameMode.TUTORIAL,
+                        onClick = { mode = GameMode.TUTORIAL },
+                        label = { Text("📚 Tutorial") }
                     )
                 }
 
@@ -2116,26 +2128,29 @@ fun SetupModal(
                     }
                 }
 
-                Text("Expansions:", fontWeight = FontWeight.SemiBold)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = mosquito,
-                        onClick = { mosquito = !mosquito },
-                        label = { Text("🦟 Mosquito") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    FilterChip(
-                        selected = ladybug,
-                        onClick = { ladybug = !ladybug },
-                        label = { Text("🐞 Ladybug") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    FilterChip(
-                        selected = pillbug,
-                        onClick = { pillbug = !pillbug },
-                        label = { Text("💊 Pillbug") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                // Hide expansions in Tutorial mode
+                if (mode != GameMode.TUTORIAL) {
+                    Text("Expansions:", fontWeight = FontWeight.SemiBold)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = mosquito,
+                            onClick = { mosquito = !mosquito },
+                            label = { Text("🦟 Mosquito") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        FilterChip(
+                            selected = ladybug,
+                            onClick = { ladybug = !ladybug },
+                            label = { Text("🐞 Ladybug") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        FilterChip(
+                            selected = pillbug,
+                            onClick = { pillbug = !pillbug },
+                            label = { Text("💊 Pillbug") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         },
