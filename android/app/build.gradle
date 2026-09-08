@@ -1,6 +1,9 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    // Quality tools - applied conditionally
+    id 'io.gitlab.arturbosch.detekt'
+    id 'com.diffplug.spotless'
 }
 
 // Shared upload key + quality tooling.
@@ -78,8 +81,40 @@ android {
 if (toolsDir != null && file("$toolsDir/quality/quality.gradle").exists()) {
     apply from: "$toolsDir/quality/quality.gradle"
 } else {
-    // CI environment - skip custom quality tools that depend on local setup
-    // Basic linting will still run via Android Gradle Plugin
+    // CI environment - configure basic quality checks without external dependencies
+    
+    // Basic detekt configuration for code analysis
+    detekt {
+        toolVersion = "1.23.4"
+        buildUponDefaultConfig = true
+        allRules = false
+        config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+        baseline = file("$rootDir/config/detekt/baseline.xml")
+        source.setFrom(file("src"))
+        reports {
+            sarif.enabled = true
+            html.enabled = true
+            xml.enabled = true
+            txt.enabled = false
+        }
+    }
+    
+    // Basic spotless configuration for code formatting
+    spotless {
+        kotlin {
+            target '**/*.kt'
+            ktlint('0.50.0')
+        }
+    }
+    
+    // Make quality tasks optional in CI - don't fail the build if they're not configured
+    tasks.withType(io.gitlab.arturbosch.detekt.Detekt) {
+        enabled = false  // Disable by default in CI, can be enabled manually
+    }
+    
+    tasks.withType(com.diffplug.gradle.spotless.SpotlessTask) {
+        enabled = false  // Disable by default in CI, can be enabled manually
+    }
 }
 
 dependencies {
