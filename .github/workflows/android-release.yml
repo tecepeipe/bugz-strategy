@@ -39,32 +39,32 @@ jobs:
       - name: Grant Execute Permission to Gradlew
         run: chmod +x gradlew
 
-      - name: Build Release APK
-        run: ./gradlew assembleRelease
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
 
       - name: Verify APK exists
         run: |
           echo "=== Listing APK directory ==="
-          ls -la app/build/outputs/apk/release/ || echo "Directory does not exist"
+          ls -la app/build/outputs/apk/debug/ || echo "Directory does not exist"
           echo "=== Finding all APK files ==="
           find app/build/outputs -name "*.apk" -type f 2>/dev/null || echo "No APK files found"
-          echo "=== Checking for app-release.apk ==="
-          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
-            echo "SUCCESS: Found app-release.apk"
+          echo "=== Checking for app-debug.apk ==="
+          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+            echo "SUCCESS: Found app-debug.apk"
           else
-            echo "WARNING: app-release.apk not found, checking for other APK names..."
-            ls app/build/outputs/apk/release/*.apk 2>/dev/null || echo "No APK files in release directory"
+            echo "WARNING: app-debug.apk not found, checking for other APK names..."
+            ls app/build/outputs/apk/debug/*.apk 2>/dev/null || echo "No APK files in debug directory"
           fi
 
       - name: Create GitHub Release and Upload APK
         uses: softprops/action-gh-release@v2
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          tag_name: build-${{ github.sha }}
-          name: Auto-build ${{ github.sha }}
+          tag_name: debug-build-${{ github.sha }}
+          name: Debug Build ${{ github.sha }}
           draft: false
           prerelease: true
           generate_release_notes: false
           fail_on_unmatched_files: false
           files: |
-            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/apk/debug/app-debug.apk
