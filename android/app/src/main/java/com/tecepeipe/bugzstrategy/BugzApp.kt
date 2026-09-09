@@ -2079,28 +2079,37 @@ fun SetupModal(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Select Game Mode:", fontWeight = FontWeight.SemiBold)
                 
-                // Buttons stacked vertically
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // First row: Pass & Play and VS AI side by side
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Button(
                         onClick = { mode = GameMode.PASS_AND_PLAY },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text("👥 Pass & Play")
                     }
                     
                     Button(
                         onClick = { mode = GameMode.AI },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text("🤖 VS AI")
                     }
-                    
-                    Button(
-                        onClick = { mode = GameMode.TUTORIAL },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("📚 Tutorial")
-                    }
+                }
+                
+                // Second row: Tutorial button below
+                Button(
+                    onClick = { 
+                        mode = GameMode.TUTORIAL
+                        mosquito = false
+                        ladybug = false
+                        pillbug = false
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("📚 Tutorial")
                 }
 
                 if (mode == GameMode.AI) {
