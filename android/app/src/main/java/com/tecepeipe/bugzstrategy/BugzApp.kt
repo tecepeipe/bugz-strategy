@@ -2079,23 +2079,23 @@ fun SetupModal(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Select Game Mode:", fontWeight = FontWeight.SemiBold)
                 
-                // First row: Pass & Play and VS AI side by side
+                // First row: Pass & Play (larger) and VS AI (smaller) side by side
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Button(
                         onClick = { mode = GameMode.PASS_AND_PLAY },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1.3f)
                     ) {
-                        Text("👥 Pass & Play")
+                        Text("👥 Pass & Play", maxLines = 1)
                     }
                     
                     Button(
                         onClick = { mode = GameMode.AI },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(0.7f)
                     ) {
-                        Text("🤖 VS AI")
+                        Text("🤖 VS AI", maxLines = 1)
                     }
                 }
                 
@@ -2113,33 +2113,38 @@ fun SetupModal(
                 }
 
                 if (mode == GameMode.AI) {
-                    Text("AI Difficulty:", fontWeight = FontWeight.SemiBold)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AIDifficulty.values().forEach { d ->
-                            FilterChip(
-                                selected = diff == d,
-                                onClick = { diff = d },
-                                label = { Text(d.name) }
-                            )
-                        }
-                    }
-
-                    Text("You play as:", fontWeight = FontWeight.SemiBold)
                     Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        Text("AI Difficulty:", fontWeight = FontWeight.SemiBold)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            AIDifficulty.values().forEach { d ->
+                                FilterChip(
+                                    selected = diff == d,
+                                    onClick = { diff = d },
+                                    label = { Text(d.name) }
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("You play as:", fontWeight = FontWeight.SemiBold)
                         FilterChip(
                             selected = humanColor == Player.ONE,
                             onClick = { humanColor = Player.ONE },
-                            label = { Text("White (P1)") },
-                            modifier = Modifier.weight(1f)
+                            label = { Text("White (P1)") }
                         )
                         FilterChip(
                             selected = humanColor == Player.TWO,
                             onClick = { humanColor = Player.TWO },
-                            label = { Text("Black (P2)") },
-                            modifier = Modifier.weight(1f)
+                            label = { Text("Black (P2)") }
                         )
                     }
                 }
