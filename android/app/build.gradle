@@ -1,26 +1,12 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
-    // Quality tools - applied conditionally
-    id 'io.gitlab.arturbosch.detekt'
-    id 'com.diffplug.spotless'
 }
 
 // Shared upload key + quality tooling.
-def toolsDir = null
-def localPropsFile = rootProject.file('local.properties')
-if (localPropsFile.exists()) {
-    def props = new Properties()
-    localPropsFile.withInputStream { props.load(it) }
-    toolsDir = props.getProperty('android-tools.dir')
-}
-
-// Fallback for CI environments where local.properties doesn't exist
-if (toolsDir == null || !file(toolsDir).exists()) {
-    // In CI, we don't have the custom tools directory
-    // Use default Android SDK path and skip custom signing for now
-    toolsDir = null
-}
+def props = new Properties()
+rootProject.file('local.properties').withInputStream { props.load(it) }
+def toolsDir = props.getProperty('android-tools.dir')
 
 android {
     namespace 'com.tecepeipe.bugzstrategy'
@@ -36,24 +22,16 @@ android {
 
     signingConfigs {
         release {
-            if (toolsDir != null) {
-                storeFile file("$toolsDir/upload-release.keystore")
-                storePassword 'tecepeipe123'
-                keyAlias 'upload'
-                keyPassword 'tecepeipe123'
-            } else {
-                // CI environment - use debug signing or skip
-                // GitHub Actions will handle signing via secrets if needed
-                storeType 'NONE'
-            }
+            storeFile file("$toolsDir/upload-release.keystore")
+            storePassword 'tecepeipe123'
+            keyAlias 'upload'
+            keyPassword 'tecepeipe123'
         }
     }
 
     buildTypes {
         release {
-            if (toolsDir != null) {
-                signingConfig signingConfigs.release
-            }
+            signingConfig signingConfigs.release
             minifyEnabled false
         }
     }
@@ -78,44 +56,7 @@ android {
 
 // Shared quality tooling (detekt + spotless + JUnit), see
 // android-tools/quality/quality.gradle.
-if (toolsDir != null && file("$toolsDir/quality/quality.gradle").exists()) {
-    apply from: "$toolsDir/quality/quality.gradle"
-} else {
-    // CI environment - configure basic quality checks without external dependencies
-    
-    // Basic detekt configuration for code analysis
-    detekt {
-        toolVersion = "1.23.4"
-        buildUponDefaultConfig = true
-        allRules = false
-        config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
-        baseline = file("$rootDir/config/detekt/baseline.xml")
-        source.setFrom(file("src"))
-        reports {
-            sarif.enabled = true
-            html.enabled = true
-            xml.enabled = true
-            txt.enabled = false
-        }
-    }
-    
-    // Basic spotless configuration for code formatting
-    spotless {
-        kotlin {
-            target '**/*.kt'
-            ktlint('0.50.0')
-        }
-    }
-    
-    // Make quality tasks optional in CI - don't fail the build if they're not configured
-    tasks.withType(io.gitlab.arturbosch.detekt.Detekt) {
-        enabled = false  // Disable by default in CI, can be enabled manually
-    }
-    
-    tasks.withType(com.diffplug.gradle.spotless.SpotlessTask) {
-        enabled = false  // Disable by default in CI, can be enabled manually
-    }
-}
+apply from: "$toolsDir/quality/quality.gradle"
 
 dependencies {
     implementation platform('androidx.compose:compose-bom:2024.02.00')
