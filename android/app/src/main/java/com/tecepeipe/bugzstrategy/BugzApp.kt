@@ -104,7 +104,7 @@ data class AxialHex(val q: Int, val r: Int) {
     )
 }
 
-enum class GameMode { PASS_AND_PLAY, AI, TUTORIAL }
+enum class GameMode { PASS_AND_PLAY, AI }
 enum class AIDifficulty { EASY, MEDIUM, HARD }
 
 data class ExpansionsConfig(
@@ -1267,8 +1267,6 @@ fun HiveApp() {
     var gameOver by remember { mutableStateOf<Player?>(null) }
     var isDraw by remember { mutableStateOf(false) }
 
-    val isTutorialMode = settings.mode == GameMode.TUTORIAL
-
     var selectedHex by remember { mutableStateOf<AxialHex?>(null) }
     var selectedReserveBug by remember { mutableStateOf<BugType?>(null) }
     var validDestinations by remember { mutableStateOf<List<AxialHex>>(emptyList()) }
@@ -1311,7 +1309,7 @@ fun HiveApp() {
     var executeMoveImpl: ((MoveAction) -> Unit)? = null
 
     fun requestAIMove() {
-        if (settings.mode != GameMode.AI && settings.mode != GameMode.TUTORIAL) return
+        if (settings.mode != GameMode.AI) return
         if (gameOver != null || isSetupOpen) return
         if (engine.currentPlayer != aiPlayer) return
         if (isAITurn) return
@@ -1321,10 +1319,6 @@ fun HiveApp() {
             delay(600)
 
             val humanPlayer: Player = if (aiPlayer == Player.ONE) Player.TWO else Player.ONE
-            
-            // In tutorial mode, use EASY difficulty and show hints
-            val difficulty = if (settings.mode == GameMode.TUTORIAL) AIDifficulty.EASY else settings.aiDifficulty
-            
             val action = computeAIMove(
                 engine.board,
                 aiPlayer,
@@ -1332,7 +1326,7 @@ fun HiveApp() {
                 engine.reserveFor(humanPlayer),
                 engine.turnCountFor(aiPlayer),
                 engine.turnCountFor(humanPlayer),
-                difficulty,
+                settings.aiDifficulty,
                 engine.lastMovedPieceId,
                 settings.expansions
             )
@@ -1462,7 +1456,7 @@ fun HiveApp() {
 
     fun handleHexClick(hex: AxialHex) {
         if (isAITurn || gameOver != null) return
-        if ((settings.mode == GameMode.AI || settings.mode == GameMode.TUTORIAL) && engine.currentPlayer == aiPlayer) return
+        if (settings.mode == GameMode.AI && engine.currentPlayer == aiPlayer) return
 
         val isDest = validDestinations.any { it.q == hex.q && it.r == hex.r }
         val isPillbugDest = pillbugDestinations.any { it.q == hex.q && it.r == hex.r }
@@ -1565,7 +1559,6 @@ fun HiveApp() {
                                 text = when {
                                     gameOver != null -> "Game Over"
                                     isAITurn -> "AI Thinking..."
-                                    settings.mode == GameMode.TUTORIAL -> "📚 Tutorial Mode"
                                     settings.mode == GameMode.AI -> "VS AI (${settings.aiDifficulty})"
                                     else -> "Pass & Play"
                                 },
@@ -2078,100 +2071,71 @@ fun SetupModal(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Select Game Mode:", fontWeight = FontWeight.SemiBold)
-                
-                // First row: Pass & Play (larger) and VS AI (smaller) side by side
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Button(
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = mode == GameMode.PASS_AND_PLAY,
                         onClick = { mode = GameMode.PASS_AND_PLAY },
-                        modifier = Modifier.weight(1.3f)
-                    ) {
-                        Text("👥 Pass & Play", maxLines = 1)
-                    }
-                    
-                    Button(
+                        label = { Text("Pass & Play") }
+                    )
+                    FilterChip(
+                        selected = mode == GameMode.AI,
                         onClick = { mode = GameMode.AI },
-                        modifier = Modifier.weight(0.7f)
-                    ) {
-                        Text("🤖 VS AI", maxLines = 1)
-                    }
-                }
-                
-                // Second row: Tutorial button below
-                Button(
-                    onClick = { 
-                        mode = GameMode.TUTORIAL
-                        mosquito = false
-                        ladybug = false
-                        pillbug = false
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("📚 Tutorial")
+                        label = { Text("VS AI Engine") }
+                    )
                 }
 
                 if (mode == GameMode.AI) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("AI Difficulty:", fontWeight = FontWeight.SemiBold)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            AIDifficulty.values().forEach { d ->
-                                FilterChip(
-                                    selected = diff == d,
-                                    onClick = { diff = d },
-                                    label = { Text(d.name) }
-                                )
-                            }
+                    Text("AI Difficulty:", fontWeight = FontWeight.SemiBold)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AIDifficulty.values().forEach { d ->
+                            FilterChip(
+                                selected = diff == d,
+                                onClick = { diff = d },
+                                label = { Text(d.name) }
+                            )
                         }
                     }
 
+                    Text("You play as:", fontWeight = FontWeight.SemiBold)
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("You play as:", fontWeight = FontWeight.SemiBold)
                         FilterChip(
                             selected = humanColor == Player.ONE,
                             onClick = { humanColor = Player.ONE },
-                            label = { Text("White (P1)") }
+                            label = { Text("White (P1)") },
+                            modifier = Modifier.weight(1f)
                         )
                         FilterChip(
                             selected = humanColor == Player.TWO,
                             onClick = { humanColor = Player.TWO },
-                            label = { Text("Black (P2)") }
+                            label = { Text("Black (P2)") },
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
 
-                // Hide expansions in Tutorial mode
-                if (mode != GameMode.TUTORIAL) {
-                    Text("Expansions:", fontWeight = FontWeight.SemiBold)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = mosquito,
-                            onClick = { mosquito = !mosquito },
-                            label = { Text("🦟 Mosquito") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        FilterChip(
-                            selected = ladybug,
-                            onClick = { ladybug = !ladybug },
-                            label = { Text("🐞 Ladybug") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        FilterChip(
-                            selected = pillbug,
-                            onClick = { pillbug = !pillbug },
-                            label = { Text("💊 Pillbug") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                Text("Expansions:", fontWeight = FontWeight.SemiBold)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = mosquito,
+                        onClick = { mosquito = !mosquito },
+                        label = { Text("🦟 Mosquito") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    FilterChip(
+                        selected = ladybug,
+                        onClick = { ladybug = !ladybug },
+                        label = { Text("🐞 Ladybug") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    FilterChip(
+                        selected = pillbug,
+                        onClick = { pillbug = !pillbug },
+                        label = { Text("💊 Pillbug") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         },
