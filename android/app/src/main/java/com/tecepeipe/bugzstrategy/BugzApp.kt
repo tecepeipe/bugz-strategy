@@ -825,21 +825,19 @@ class HiveEngine {
         return checkGameStatus(board)
     }
 
-    fun executeMove(action: MoveAction) {
+    fun executeMove(action: MoveAction): String? {
         // Double-validate the move before execution to prevent illegal moves
         if (action.type == MoveAction.ActionType.MOVE && action.fromHex != null) {
             val topPiece = getTopPiece(board, action.fromHex)
             if (topPiece == null || topPiece.player != action.player) {
-                _toast.value = "Invalid move: Not your piece!"
-                return
+                return "Invalid move: Not your piece!"
             }
             // Verify the destination is actually valid
             val validMoves = getValidMovesForPiece(
                 board, action.fromHex, action.player, turnCountFor(action.player), lastMovedPieceId, expansions
             )
             if (!validMoves.any { it.q == action.toHex.q && it.r == action.toHex.r }) {
-                _toast.value = "Invalid move: Destination not reachable!"
-                return
+                return "Invalid move: Destination not reachable!"
             }
         }
         
@@ -1298,7 +1296,6 @@ fun HiveApp() {
     var pillbugDestinations by remember { mutableStateOf<List<AxialHex>>(emptyList()) }
     var lastMovedHex by remember { mutableStateOf<AxialHex?>(null) }
     var isAITurn by remember { mutableStateOf(false) }
-    val _toast = remember { mutableStateOf<String?>(null) }
     var toast by remember { mutableStateOf<String?>(null) }
     var undoStack by remember { mutableStateOf<List<HiveEngine.EngineSnapshot>>(emptyList()) }
 
@@ -1370,7 +1367,7 @@ fun HiveApp() {
                 val turn = engine.turnCountFor(engine.currentPlayer)
                 engine.history.add(MoveLogEntry(turn, engine.currentPlayer, "AI (Player ${if (engine.currentPlayer == Player.ONE) 1 else 2}) forced to pass."))
                 engine.switchTurn()
-                _toast.value = "AI has no valid moves. Turn passed."
+                toast = "AI has no valid moves. Turn passed."
                 bump()
                 applyForcedPasses()
                 bump()
@@ -1384,8 +1381,12 @@ fun HiveApp() {
     }
 
     fun executeMove(action: MoveAction) {
+        val error = engine.executeMove(action)
+        if (error != null) {
+            toast = error
+            return
+        }
         undoStack = undoStack + engine.snapshot()
-        engine.executeMove(action)
         lastMovedHex = action.toHex
         clearSelection()
 
@@ -1413,7 +1414,7 @@ fun HiveApp() {
         isDraw = false
         clearSelection()
         lastMovedHex = null
-        _toast.value = null
+        toast = null
         isAITurn = false
         undoStack = emptyList()
         isSetupOpen = false
@@ -1441,16 +1442,15 @@ fun HiveApp() {
         gameOver = null
         isDraw = false
         isAITurn = false
-        _toast.value = "Move undone."
+        toast = "Move undone."
         bump()
     }
 
-    // Toast auto-dismiss - sync _toast to toast for UI observation
-    LaunchedEffect(_toast.value) {
-        toast = _toast.value
+    // Toast auto-dismiss
+    LaunchedEffect(toast) {
         if (toast != null) {
             delay(2500)
-            _toast.value = null
+            toast = null
         }
     }
 
@@ -1463,7 +1463,7 @@ fun HiveApp() {
         if (settings.mode == GameMode.AI && engine.currentPlayer == aiPlayer) return
 
         if (queenDue() && bug != BugType.QUEEN) {
-            _toast.value = "Queen Bee must be placed this turn (4th move rule)."
+            toast = "Queen Bee must be placed this turn (4th move rule)."
             return
         }
 
@@ -1490,7 +1490,7 @@ fun HiveApp() {
         // Placement
         if (selectedReserveBug != null && isDest) {
             if (queenDue() && selectedReserveBug != BugType.QUEEN) {
-                _toast.value = "Queen Bee must be placed this turn (4th move rule)."
+                toast = "Queen Bee must be placed this turn (4th move rule)."
                 return
             }
             val reserve = engine.reserveFor(engine.currentPlayer)
