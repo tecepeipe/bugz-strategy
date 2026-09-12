@@ -4,9 +4,22 @@ plugins {
 }
 
 // Shared upload key + quality tooling.
+// Note: Quality tooling requires android-tools directory with quality.gradle
+// If android-tools is not available, comment out the apply line below
 def props = new Properties()
-rootProject.file('local.properties').withInputStream { props.load(it) }
-def toolsDir = props.getProperty('android-tools.dir')
+def localPropsFile = rootProject.file('local.properties')
+def toolsDir = null
+
+if (localPropsFile.exists()) {
+    props.load(localPropsFile.newInputStream())
+    toolsDir = props.getProperty('android-tools.dir')
+}
+
+if (toolsDir && file("$toolsDir/quality/quality.gradle").exists()) {
+    // Quality tooling will be applied below
+} else {
+    toolsDir = null  // Disable quality tooling if not found
+}
 
 android {
     namespace 'com.tecepeipe.bugzstrategy'
@@ -54,9 +67,10 @@ android {
     }
 }
 
-// Shared quality tooling (detekt + spotless + JUnit), see
-// android-tools/quality/quality.gradle.
-apply from: "$toolsDir/quality/quality.gradle"
+// Shared quality tooling (detekt + spotless + JUnit) - only apply if android-tools is available
+if (toolsDir) {
+    apply from: "$toolsDir/quality/quality.gradle"
+}
 
 dependencies {
     implementation platform('androidx.compose:compose-bom:2024.02.00')
