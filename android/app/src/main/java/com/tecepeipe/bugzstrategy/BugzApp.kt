@@ -826,6 +826,23 @@ class HiveEngine {
     }
 
     fun executeMove(action: MoveAction) {
+        // Double-validate the move before execution to prevent illegal moves
+        if (action.type == MoveAction.ActionType.MOVE && action.fromHex != null) {
+            val topPiece = getTopPiece(board, action.fromHex)
+            if (topPiece == null || topPiece.player != action.player) {
+                toast = "Invalid move: Not your piece!"
+                return
+            }
+            // Verify the destination is actually valid
+            val validMoves = getValidMovesForPiece(
+                board, action.fromHex, action.player, turnCountFor(action.player), lastMovedPieceId, expansions
+            )
+            if (!validMoves.any { it.q == action.toHex.q && it.r == action.toHex.r }) {
+                toast = "Invalid move: Destination not reachable!"
+                return
+            }
+        }
+        
         var logDesc = ""
         var actuallyMovedId: String? = null
 
