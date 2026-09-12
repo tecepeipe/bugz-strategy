@@ -388,11 +388,13 @@ fun getBeetleMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Axi
         val targetHeight = getStackHeight(board, to)
 
         if (targetHeight >= 1 || currentHeight > 1) {
+            // Beetle climbing: check gate at the height it's moving through
             val clearanceHeight = maxOf(currentHeight - 1, targetHeight)
             if (canSlide(board, fromHex, to, clearanceHeight)) {
                 moves.add(to)
             }
         } else {
+            // Both at ground level: use ground slide rules
             if (isValidGroundSlide(board, fromHex, to)) {
                 moves.add(to)
             }
@@ -1192,6 +1194,10 @@ fun evaluateBoard(
             }
         }
     }
+
+    // Reward having more reserve pieces (more options = better position)
+    score += aiReserve.size * 5.0
+    score -= humanReserve.size * 5.0
 
     return score
 }
