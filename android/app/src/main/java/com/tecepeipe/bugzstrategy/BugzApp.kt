@@ -388,11 +388,13 @@ fun getBeetleMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Axi
         val targetHeight = getStackHeight(board, to)
 
         if (targetHeight >= 1 || currentHeight > 1) {
+            // Beetle climbing: check gate at the height it's moving through
             val clearanceHeight = maxOf(currentHeight - 1, targetHeight)
             if (canSlide(board, fromHex, to, clearanceHeight)) {
                 moves.add(to)
             }
         } else {
+            // Both at ground level: use ground slide rules
             if (isValidGroundSlide(board, fromHex, to)) {
                 moves.add(to)
             }
@@ -824,6 +826,23 @@ class HiveEngine {
     }
 
     fun executeMove(action: MoveAction) {
+        // Double-validate the move before execution to prevent illegal moves
+        if (action.type == MoveAction.ActionType.MOVE && action.fromHex != null) {
+            val topPiece = getTopPiece(board, action.fromHex)
+            if (topPiece == null || topPiece.player != action.player) {
+                toast = "Invalid move: Not your piece!"
+                return
+            }
+            // Verify the destination is actually valid
+            val validMoves = getValidMovesForPiece(
+                board, action.fromHex, action.player, turnCountFor(action.player), lastMovedPieceId, expansions
+            )
+            if (!validMoves.any { it.q == action.toHex.q && it.r == action.toHex.r }) {
+                toast = "Invalid move: Destination not reachable!"
+                return
+            }
+        }
+        
         var logDesc = ""
         var actuallyMovedId: String? = null
 
@@ -1192,6 +1211,10 @@ fun evaluateBoard(
             }
         }
     }
+
+    // Reward having more reserve pieces (more options = better position)
+    score += aiReserve.size * 5.0
+    score -= humanReserve.size * 5.0
 
     return score
 }

@@ -345,6 +345,30 @@ function App() {
 
   // Execute a validated MoveAction
   const executeMove = (action: MoveAction) => {
+    // Double-validate the move before execution to prevent illegal moves
+    if (action.type === 'MOVE' && action.fromHex) {
+      const topPiece = getTopPiece(board, action.fromHex);
+      if (!topPiece || topPiece.player !== action.player) {
+        setToastMessage('Invalid move: Not your piece!');
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      // Verify the destination is actually valid
+      const validMoves = getValidMovesForPiece(
+        board,
+        action.fromHex,
+        action.player,
+        currentPlayer === 1 ? turnCountP1 : turnCountP2,
+        lastMovedPieceId,
+        settings.expansions
+      );
+      if (!validMoves.some(m => m.q === action.toHex!.q && m.r === action.toHex!.r)) {
+        setToastMessage('Invalid move: Destination not reachable!');
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+    }
+
     saveSnapshot(
       board,
       p1Reserve,
