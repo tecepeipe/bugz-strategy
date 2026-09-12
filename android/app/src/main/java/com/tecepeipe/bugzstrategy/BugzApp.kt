@@ -859,7 +859,7 @@ class HiveEngine {
 
             logDesc = "Placed ${action.bugType.title} at (${action.toHex.q}, ${action.toHex.r})"
         } else if (action.type == MoveAction.ActionType.MOVE && action.fromHex != null) {
-            val fromStack = board[action.fromHex.key()] ?: return
+            val fromStack = board[action.fromHex.key()] ?: return "Invalid move: No piece at source!"
             val movedPiece = if (fromStack.isNotEmpty()) fromStack.removeAt(fromStack.size - 1) else null
             if (fromStack.isEmpty()) board.remove(action.fromHex.key())
 
@@ -872,7 +872,7 @@ class HiveEngine {
 
             logDesc = "Moved ${action.bugType.title} from (${action.fromHex.q}, ${action.fromHex.r}) to (${action.toHex.q}, ${action.toHex.r})"
         } else if (action.type == MoveAction.ActionType.PILLBUG_SPECIAL && action.pillbugTargetHex != null) {
-            val targetStack = board[action.pillbugTargetHex.key()] ?: return
+            val targetStack = board[action.pillbugTargetHex.key()] ?: return "Invalid move: No piece at Pillbug target!"
             val movedPiece = if (targetStack.isNotEmpty()) targetStack.removeAt(targetStack.size - 1) else null
             if (targetStack.isEmpty()) board.remove(action.pillbugTargetHex.key())
 
@@ -904,6 +904,8 @@ class HiveEngine {
             turnCountP2++
             currentPlayer = Player.ONE
         }
+        
+        return null // Success
     }
 
     fun switchTurn() {
