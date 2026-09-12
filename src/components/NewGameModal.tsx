@@ -90,19 +90,20 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               <Bot className="w-6 h-6" />
               <span className="text-xs font-bold">{t('vsAiBtn')}</span>
             </button>
-
-            <button
-              onClick={handleTutorialToggle}
-              className={`col-span-2 p-2.5 rounded-2xl border flex items-center justify-center gap-2 transition-all ${
-                tutorialMode
-                  ? 'bg-emerald-500/15 border-emerald-400 text-emerald-300 shadow-md'
-                  : 'bg-slate-800/50 border-slate-700/60 text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              <GraduationCap className="w-5 h-5" />
-              <span className="text-xs font-bold">{t('tutorialMode')}</span>
-            </button>
           </div>
+
+          {/* Tutorial button on a new line */}
+          <button
+            onClick={handleTutorialToggle}
+            className={`w-full mt-3 p-2.5 rounded-2xl border flex items-center justify-center gap-2 transition-all ${
+              tutorialMode
+                ? 'bg-emerald-500/15 border-emerald-400 text-emerald-300 shadow-md'
+                : 'bg-slate-800/50 border-slate-700/60 text-slate-400 hover:bg-slate-800'
+            }`}
+          >
+            <GraduationCap className="w-5 h-5" />
+            <span className="text-xs font-bold">{t('tutorialMode')}</span>
+          </button>
         </div>
 
         {/* AI Difficulty */}
