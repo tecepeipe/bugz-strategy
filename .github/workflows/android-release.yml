@@ -39,6 +39,12 @@ jobs:
       - name: Grant Execute Permission to Gradlew
         run: chmod +x gradlew
 
+      - name: Run Quality Checks
+        run: ./gradlew detekt spotlessCheck buildHealth
+
+      - name: Run Tests
+        run: ./gradlew test
+
       - name: Build Debug APK
         run: ./gradlew assembleDebug
 

@@ -104,7 +104,7 @@ data class AxialHex(val q: Int, val r: Int) {
     )
 }
 
-enum class GameMode { PASS_AND_PLAY, AI }
+enum class GameMode { PASS_AND_PLAY, AI, TUTORIAL }
 enum class AIDifficulty { EASY, MEDIUM, HARD }
 
 data class ExpansionsConfig(
@@ -117,7 +117,8 @@ data class GameSettings(
     val mode: GameMode = GameMode.AI,
     val aiDifficulty: AIDifficulty = AIDifficulty.MEDIUM,
     val expansions: ExpansionsConfig = ExpansionsConfig(),
-    val humanColor: Player = Player.ONE
+    val humanColor: Player = Player.ONE,
+    val tutorialMode: Boolean = false
 )
 
 data class MoveLogEntry(val turn: Int, val player: Player, val text: String)
