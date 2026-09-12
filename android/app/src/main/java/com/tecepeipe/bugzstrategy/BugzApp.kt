@@ -830,7 +830,7 @@ class HiveEngine {
         if (action.type == MoveAction.ActionType.MOVE && action.fromHex != null) {
             val topPiece = getTopPiece(board, action.fromHex)
             if (topPiece == null || topPiece.player != action.player) {
-                toast = "Invalid move: Not your piece!"
+                _toast.value = "Invalid move: Not your piece!"
                 return
             }
             // Verify the destination is actually valid
@@ -838,7 +838,7 @@ class HiveEngine {
                 board, action.fromHex, action.player, turnCountFor(action.player), lastMovedPieceId, expansions
             )
             if (!validMoves.any { it.q == action.toHex.q && it.r == action.toHex.r }) {
-                toast = "Invalid move: Destination not reachable!"
+                _toast.value = "Invalid move: Destination not reachable!"
                 return
             }
         }
@@ -1298,6 +1298,7 @@ fun HiveApp() {
     var pillbugDestinations by remember { mutableStateOf<List<AxialHex>>(emptyList()) }
     var lastMovedHex by remember { mutableStateOf<AxialHex?>(null) }
     var isAITurn by remember { mutableStateOf(false) }
+    val _toast = remember { mutableStateOf<String?>(null) }
     var toast by remember { mutableStateOf<String?>(null) }
     var undoStack by remember { mutableStateOf<List<HiveEngine.EngineSnapshot>>(emptyList()) }
 
@@ -1369,7 +1370,7 @@ fun HiveApp() {
                 val turn = engine.turnCountFor(engine.currentPlayer)
                 engine.history.add(MoveLogEntry(turn, engine.currentPlayer, "AI (Player ${if (engine.currentPlayer == Player.ONE) 1 else 2}) forced to pass."))
                 engine.switchTurn()
-                toast = "AI has no valid moves. Turn passed."
+                _toast.value = "AI has no valid moves. Turn passed."
                 bump()
                 applyForcedPasses()
                 bump()
@@ -1412,7 +1413,7 @@ fun HiveApp() {
         isDraw = false
         clearSelection()
         lastMovedHex = null
-        toast = null
+        _toast.value = null
         isAITurn = false
         undoStack = emptyList()
         isSetupOpen = false
@@ -1440,15 +1441,16 @@ fun HiveApp() {
         gameOver = null
         isDraw = false
         isAITurn = false
-        toast = "Move undone."
+        _toast.value = "Move undone."
         bump()
     }
 
-    // Toast auto-dismiss
-    LaunchedEffect(toast) {
+    // Toast auto-dismiss - sync _toast to toast for UI observation
+    LaunchedEffect(_toast.value) {
+        toast = _toast.value
         if (toast != null) {
             delay(2500)
-            toast = null
+            _toast.value = null
         }
     }
 
@@ -1461,7 +1463,7 @@ fun HiveApp() {
         if (settings.mode == GameMode.AI && engine.currentPlayer == aiPlayer) return
 
         if (queenDue() && bug != BugType.QUEEN) {
-            toast = "Queen Bee must be placed this turn (4th move rule)."
+            _toast.value = "Queen Bee must be placed this turn (4th move rule)."
             return
         }
 
@@ -1488,7 +1490,7 @@ fun HiveApp() {
         // Placement
         if (selectedReserveBug != null && isDest) {
             if (queenDue() && selectedReserveBug != BugType.QUEEN) {
-                toast = "Queen Bee must be placed this turn (4th move rule)."
+                _toast.value = "Queen Bee must be placed this turn (4th move rule)."
                 return
             }
             val reserve = engine.reserveFor(engine.currentPlayer)
