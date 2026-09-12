@@ -51,7 +51,12 @@ jobs:
           fi
 
       - name: Run Tests
-        run: ./gradlew test
+        run: |
+          if [ -d "app/src/test" ]; then
+            ./gradlew test
+          else
+            echo "No tests found. Skipping test execution."
+          fi
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug
