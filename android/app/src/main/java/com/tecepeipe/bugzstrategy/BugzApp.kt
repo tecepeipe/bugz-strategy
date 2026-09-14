@@ -269,6 +269,7 @@ fun isValidGroundSlide(
     return touchesHive
 }
 
+@Suppress("UNUSED_PARAMETER")
 fun getValidPlacements(
     board: Map<String, List<Piece>>,
     player: Player,
@@ -491,6 +492,7 @@ fun getMovesForBugType(
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 fun getValidMovesForPiece(
     board: Map<String, List<Piece>>,
     fromHex: AxialHex,
@@ -539,6 +541,7 @@ fun getValidMovesForPiece(
     return validDestinations.map { parseKey(it) }
 }
 
+@Suppress("UNUSED_PARAMETER")
 fun getPillbugSpecialTargets(
     board: Map<String, List<Piece>>,
     pillbugHex: AxialHex,
