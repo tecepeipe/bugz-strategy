@@ -41,7 +41,7 @@
 </td>
 <td>
 <div class="infoBox" id="duration">
-<div class="counter">0.328s</div>
+<div class="counter">0.137s</div>
 <p>duration</p>
 </div>
 </td>
@@ -70,14 +70,13 @@
 <div id="tab0" class="tab">
 <h2>Failed tests</h2>
 <div class="test">
-<a name="beetle on top cannot step down through ground-level gate"></a>
-<h3 class="failures">beetle on top cannot step down through ground-level gate</h3>
+<a name="queen can slide through open gate"></a>
+<h3 class="failures">queen can slide through open gate</h3>
 <span class="code">
-<pre>java.lang.AssertionError: Beetle on top should NOT step down through blocked ground gate
+<pre>java.lang.AssertionError: Queen should slide through open gate
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.assertTrue(Assert.java:42)
-	at org.junit.Assert.assertFalse(Assert.java:65)
-	at com.tecepeipe.bugzstrategy.BugzEngineTest.beetle on top cannot step down through ground-level gate(BugzEngineTest.kt:427)
+	at com.tecepeipe.bugzstrategy.BugzEngineTest.queen can slide through open gate(BugzEngineTest.kt:383)
 	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
 	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
 	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
@@ -137,27 +136,27 @@
 </thead>
 <tr>
 <td class="success">axial hex neighbors are the six surrounding hexes</td>
-<td class="success">0.001s</td>
+<td class="success">0.003s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
-<td class="failures">beetle on top cannot step down through ground-level gate</td>
-<td class="failures">0.012s</td>
-<td class="failures">failed</td>
+<td class="success">beetle on top cannot step down through ground-level gate</td>
+<td class="success">0.004s</td>
+<td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">board helpers handle empty and stacked hexes</td>
-<td class="success">0.001s</td>
+<td class="success">0s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">canRemovePiece returns true for stacks</td>
-<td class="success">0.001s</td>
+<td class="success">0s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">canSlide is false when both common neighbors are blocked</td>
-<td class="success">0.201s</td>
+<td class="success">0.100s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -167,32 +166,32 @@
 </tr>
 <tr>
 <td class="success">empty and single-piece swarms are connected</td>
-<td class="success">0.008s</td>
+<td class="success">0.007s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">evaluateBoard rewards having more reserve pieces</td>
-<td class="success">0.002s</td>
+<td class="success">0s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">first placement is at the origin</td>
-<td class="success">0.002s</td>
-<td class="success">passed</td>
-</tr>
-<tr>
-<td class="success">game status is not over with only queens placed</td>
-<td class="success">0.002s</td>
-<td class="success">passed</td>
-</tr>
-<tr>
-<td class="success">initNewGame creates full reserves</td>
 <td class="success">0.001s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
+<td class="success">game status is not over with only queens placed</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">initNewGame creates full reserves</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
 <td class="success">initNewGame without expansions shrinks reserves</td>
-<td class="success">0.002s</td>
+<td class="success">0s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -202,7 +201,7 @@
 </tr>
 <tr>
 <td class="success">placements cannot touch enemy pieces</td>
-<td class="success">0.002s</td>
+<td class="success">0.001s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -211,23 +210,23 @@
 <td class="success">passed</td>
 </tr>
 <tr>
-<td class="success">queen can slide through open gate</td>
-<td class="success">0.001s</td>
-<td class="success">passed</td>
+<td class="failures">queen can slide through open gate</td>
+<td class="failures">0.006s</td>
+<td class="failures">failed</td>
 </tr>
 <tr>
 <td class="success">queen cannot escape through gate blocked on both sides</td>
-<td class="success">0.003s</td>
+<td class="success">0.001s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">queen helpers report placement and location</td>
-<td class="success">0.001s</td>
+<td class="success">0s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">queen surrounded on all six sides ends the game</td>
-<td class="success">0.004s</td>
+<td class="success">0.001s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -237,32 +236,32 @@
 </tr>
 <tr>
 <td class="success">simulateAction deducts from AI reserve only when AI places</td>
-<td class="success">0.001s</td>
+<td class="success">0s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">simulateAction deducts from human reserve only when human places</td>
-<td class="success">0.001s</td>
+<td class="success">0s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">simulateAction does not touch reserves on MOVE action</td>
-<td class="success">0.001s</td>
+<td class="success">0s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">snapshot and restore preserve state</td>
-<td class="success">0.079s</td>
+<td class="success">0.012s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">two adjacent pieces keep the swarm connected</td>
-<td class="success">0.001s</td>
+<td class="success">0s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">two separated pieces break the swarm</td>
-<td class="success">0.001s</td>
+<td class="success">0s</td>
 <td class="success">passed</td>
 </tr>
 </table>
@@ -275,7 +274,7 @@
 <input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
 </label>
 </div>Generated by 
-<a href="http://www.gradle.org">Gradle 8.2</a> at Sep 14, 2026, 7:33:47 PM</p>
+<a href="http://www.gradle.org">Gradle 8.2</a> at Sep 14, 2026, 10:48:09 PM</p>
 </div>
 </div>
 </body>

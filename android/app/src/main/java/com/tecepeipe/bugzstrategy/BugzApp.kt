@@ -2135,13 +2135,13 @@ fun SetupModal(
                         FilterChip(
                             selected = humanColor == Player.ONE,
                             onClick = { humanColor = Player.ONE },
-                            label = { Text("White (P1)") },
+                            label = { Text("White") },
                             modifier = Modifier.weight(1f)
                         )
                         FilterChip(
                             selected = humanColor == Player.TWO,
                             onClick = { humanColor = Player.TWO },
-                            label = { Text("Black (P2)") },
+                            label = { Text("Black") },
                             modifier = Modifier.weight(1f)
                         )
                     }
