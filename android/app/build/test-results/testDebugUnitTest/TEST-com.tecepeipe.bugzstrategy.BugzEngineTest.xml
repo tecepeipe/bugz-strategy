@@ -1,80 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.tecepeipe.bugzstrategy.BugzEngineTest" tests="26" skipped="0" failures="1" errors="0" timestamp="2026-09-14T19:33:46" hostname="c-6aa84781-019e4feb-91b4bdf6793a" time="0.393">
+<testsuite name="com.tecepeipe.bugzstrategy.BugzEngineTest" tests="26" skipped="0" failures="0" errors="0" timestamp="2026-09-14T23:02:24" hostname="c-6aa8770e-019e4feb-c1ba5d51c0f5" time="0.182">
   <properties/>
-  <testcase name="canSlide is false when both common neighbors are blocked" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.201"/>
-  <testcase name="empty and single-piece swarms are connected" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.008"/>
-  <testcase name="snapshot and restore preserve state" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.079"/>
-  <testcase name="initNewGame without expansions shrinks reserves" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.002"/>
-  <testcase name="parseKey round trips" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
-  <testcase name="canRemovePiece returns true for stacks" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
-  <testcase name="placements cannot touch enemy pieces" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.002"/>
-  <testcase name="queen cannot escape through gate blocked on both sides" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.003"/>
-  <testcase name="queen helpers report placement and location" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
-  <testcase name="two adjacent pieces keep the swarm connected" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
-  <testcase name="game status is not over with only queens placed" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.002"/>
+  <testcase name="canSlide is false when both common neighbors are blocked" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.089"/>
+  <testcase name="empty and single-piece swarms are connected" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.007"/>
+  <testcase name="snapshot and restore preserve state" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.011"/>
+  <testcase name="initNewGame without expansions shrinks reserves" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
+  <testcase name="parseKey round trips" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
+  <testcase name="canRemovePiece returns true for stacks" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
+  <testcase name="placements cannot touch enemy pieces" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
+  <testcase name="queen cannot escape through gate blocked on both sides" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.002"/>
+  <testcase name="queen helpers report placement and location" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
+  <testcase name="two adjacent pieces keep the swarm connected" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
+  <testcase name="game status is not over with only queens placed" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
   <testcase name="simulateAction deducts from human reserve only when human places" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
-  <testcase name="initNewGame creates full reserves" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
+  <testcase name="initNewGame creates full reserves" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
   <testcase name="cloneBoard deep copies stacks" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
-  <testcase name="two separated pieces break the swarm" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
-  <testcase name="first placement is at the origin" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.002"/>
+  <testcase name="two separated pieces break the swarm" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
+  <testcase name="first placement is at the origin" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
   <testcase name="board helpers handle empty and stacked hexes" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
-  <testcase name="simulateAction does not touch reserves on MOVE action" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
-  <testcase name="evaluateBoard rewards having more reserve pieces" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.002"/>
-  <testcase name="axial hex neighbors are the six surrounding hexes" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
-  <testcase name="simulateAction deducts from AI reserve only when AI places" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
+  <testcase name="simulateAction does not touch reserves on MOVE action" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
+  <testcase name="evaluateBoard rewards having more reserve pieces" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.05"/>
+  <testcase name="axial hex neighbors are the six surrounding hexes" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
+  <testcase name="simulateAction deducts from AI reserve only when AI places" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
   <testcase name="queen can slide through open gate" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
-  <testcase name="beetle on top cannot step down through ground-level gate" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.012">
-    <failure message="java.lang.AssertionError: Beetle on top should NOT step down through blocked ground gate" type="java.lang.AssertionError">java.lang.AssertionError: Beetle on top should NOT step down through blocked ground gate
-	at org.junit.Assert.fail(Assert.java:89)
-	at org.junit.Assert.assertTrue(Assert.java:42)
-	at org.junit.Assert.assertFalse(Assert.java:65)
-	at com.tecepeipe.bugzstrategy.BugzEngineTest.beetle on top cannot step down through ground-level gate(BugzEngineTest.kt:427)
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
-	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
-	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
-	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
-	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
-	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
-	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
-	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
-	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
-	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
-	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
-	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
-	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
-	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
-	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
-	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
-	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
-	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
-	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
-	at org.gradle.api.internal.tasks.testing.junit.JUnitTestClassExecutor.runTestClass(JUnitTestClassExecutor.java:108)
-	at org.gradle.api.internal.tasks.testing.junit.JUnitTestClassExecutor.execute(JUnitTestClassExecutor.java:58)
-	at org.gradle.api.internal.tasks.testing.junit.JUnitTestClassExecutor.execute(JUnitTestClassExecutor.java:40)
-	at org.gradle.api.internal.tasks.testing.junit.AbstractJUnitTestClassProcessor.processTestClass(AbstractJUnitTestClassProcessor.java:60)
-	at org.gradle.api.internal.tasks.testing.SuiteTestClassProcessor.processTestClass(SuiteTestClassProcessor.java:52)
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
-	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
-	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
-	at org.gradle.internal.dispatch.ReflectionDispatch.dispatch(ReflectionDispatch.java:36)
-	at org.gradle.internal.dispatch.ReflectionDispatch.dispatch(ReflectionDispatch.java:24)
-	at org.gradle.internal.dispatch.ContextClassLoaderDispatch.dispatch(ContextClassLoaderDispatch.java:33)
-	at org.gradle.internal.dispatch.ProxyDispatchAdapter$DispatchingInvocationHandler.invoke(ProxyDispatchAdapter.java:94)
-	at jdk.proxy1/jdk.proxy1.$Proxy2.processTestClass(Unknown Source)
-	at org.gradle.api.internal.tasks.testing.worker.TestWorker$2.run(TestWorker.java:176)
-	at org.gradle.api.internal.tasks.testing.worker.TestWorker.executeAndMaintainThreadName(TestWorker.java:129)
-	at org.gradle.api.internal.tasks.testing.worker.TestWorker.execute(TestWorker.java:100)
-	at org.gradle.api.internal.tasks.testing.worker.TestWorker.execute(TestWorker.java:60)
-	at org.gradle.process.internal.worker.child.ActionExecutionWorker.execute(ActionExecutionWorker.java:56)
-	at org.gradle.process.internal.worker.child.SystemApplicationClassLoaderWorker.call(SystemApplicationClassLoaderWorker.java:113)
-	at org.gradle.process.internal.worker.child.SystemApplicationClassLoaderWorker.call(SystemApplicationClassLoaderWorker.java:65)
-	at worker.org.gradle.process.internal.worker.GradleWorkerMain.run(GradleWorkerMain.java:69)
-	at worker.org.gradle.process.internal.worker.GradleWorkerMain.main(GradleWorkerMain.java:74)
-</failure>
-  </testcase>
-  <testcase name="queen surrounded on all six sides ends the game" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.004"/>
+  <testcase name="beetle on top cannot step down through ground-level gate" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.001"/>
+  <testcase name="queen surrounded on all six sides ends the game" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
   <testcase name="second placement touches the first piece" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
   <testcase name="placing the first piece updates the board and turns" classname="com.tecepeipe.bugzstrategy.BugzEngineTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
