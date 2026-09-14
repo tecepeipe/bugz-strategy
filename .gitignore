@@ -1,34 +1,27 @@
 ```
-# Android build outputs
+# Android build artifacts
 android/app/build/
-!android/app/build/outputs/
 
-# Compiled Java/Kotlin classes
+# Compiled class files
 *.class
 
-# JAR and APK files
-*.jar
-*.apk
+# Kotlin compilation artifacts
+*.kotlin_module
 
-# DEX files
-*.dex
-
-# Gradle cache
-.gradle/
-!gradle.properties
-
-# Kotlin compilation
-kotlin/
+# Temporary files
+*.tmp
 
 # Test reports and results
-**/test-results/
-**/reports/
+android/app/build/reports/
+android/app/build/test-results/
 
-# Temporary build files
-**/tmp/
-**/intermediates/
+# IDE specific files
+.idea/
+.vscode/
 
-# Local configuration
-local.properties
+# Log files
+*.log
 
+# Package manager cache
+.gradle/
 ```
