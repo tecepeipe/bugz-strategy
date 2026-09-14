@@ -244,7 +244,7 @@ fun canSlide(
 
     val maxAllowedHeight = maxOf(atHeight, getStackHeight(board, fromHex) - 1, getStackHeight(board, toHex))
 
-    if (h1 > maxAllowedHeight && h2 > maxAllowedHeight) {
+    if (h1 >= maxAllowedHeight && h2 >= maxAllowedHeight) {
         return false
     }
     return true
@@ -954,7 +954,7 @@ fun computeEasyMove(
     turnCountAI: Int
 ): MoveAction {
     // Play the queen when it is due (by the 4th turn) if the AI forgot to place it earlier.
-    if (!isQueenPlaced(board, aiPlayer) && turnCountAI >= 3) {
+    if (!isQueenPlaced(board, aiPlayer) && turnCountAI >= 4) {
         val queenActions = legalActions.filter { it.bugType == BugType.QUEEN }
         if (queenActions.isNotEmpty()) {
             return queenActions[Math.floor(Math.random() * queenActions.size).toInt()]
