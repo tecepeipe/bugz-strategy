@@ -397,8 +397,27 @@ function getQueenMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
 }
 
 // 2. Spider: Exactly 3 steps around perimeter without backtracking
+// Spider slides along the perimeter - intermediate positions can be occupied,
+// only the final destination must be empty. We need a special slide check
+// that allows sliding through/along occupied hexes.
 function getSpiderMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   const results: AxialHex[] = [];
+
+  // Special slide check for spider: gate check only, no occupancy requirement
+  function canSpiderSlide(current: AxialHex, next: AxialHex): boolean {
+    const common = getCommonNeighbors(current, next);
+    if (common.length !== 2) return false;
+
+    const h1 = getStackHeight(board, common[0]);
+    const h2 = getStackHeight(board, common[1]);
+
+    // Gate check at ground level
+    if (h1 > 0 && h2 > 0) {
+      return false;
+    }
+
+    return true;
+  }
 
   // DFS/BFS path finding of length exactly 3
   function spiderDFS(current: AxialHex, stepCount: number, visitedKeys: Set<string>) {
@@ -411,7 +430,10 @@ function getSpiderMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
     for (const next of neighbors) {
       const nextKey = hexKey(next.q, next.r);
       if (!visitedKeys.has(nextKey)) {
-        if (isValidGroundSlide(board, current, next)) {
+        // For intermediate steps (0, 1), spider can move to any adjacent hex 
+        // that passes the gate check (doesn't need to be empty)
+        // Only the final step (stepCount 2 -> 3) must land on an empty hex
+        if (canSpiderSlide(current, next)) {
           const nextVisited = new Set(visitedKeys);
           nextVisited.add(nextKey);
           spiderDFS(next, stepCount + 1, nextVisited);
@@ -423,10 +445,26 @@ function getSpiderMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   const startVisited = new Set<string>([hexKey(fromHex.q, fromHex.r)]);
   spiderDFS(fromHex, 0, startVisited);
 
+  // Filter: final destinations must be empty and touch the swarm
+  const validResults = results.filter(hex => {
+    if (isOccupied(board, hex)) return false;
+    // Must touch at least one piece in the swarm (excluding the starting position)
+    const neighbors = getAllNeighbors(hex);
+    return neighbors.some(n => {
+      const nKey = hexKey(n.q, n.r);
+      if (nKey === hexKey(fromHex.q, fromHex.r)) {
+        // Check if there's still a piece at fromHex after moving
+        const stack = board.get(hexKey(fromHex.q, fromHex.r));
+        return stack && stack.length > 0;
+      }
+      return isOccupied(board, n);
+    });
+  });
+
   // Remove duplicates
   const uniqueKeys = new Set<string>();
   const uniqueResults: AxialHex[] = [];
-  for (const hex of results) {
+  for (const hex of validResults) {
     const key = hexKey(hex.q, hex.r);
     if (!uniqueKeys.has(key)) {
       uniqueKeys.add(key);
@@ -486,9 +524,26 @@ function getGrasshopperMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
 }
 
 // 5. Soldier Ant: Moves any distance around perimeter of swarm
+// Ant can slide through/along occupied hexes, only final destination must be empty
 function getSoldierAntMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   const visited = new Set<string>([hexKey(fromHex.q, fromHex.r)]);
   const queue: AxialHex[] = [fromHex];
+
+  // Special slide check for ant: gate check only, no occupancy requirement
+  function canAntSlide(current: AxialHex, next: AxialHex): boolean {
+    const common = getCommonNeighbors(current, next);
+    if (common.length !== 2) return false;
+
+    const h1 = getStackHeight(board, common[0]);
+    const h2 = getStackHeight(board, common[1]);
+
+    // Gate check at ground level
+    if (h1 > 0 && h2 > 0) {
+      return false;
+    }
+
+    return true;
+  }
 
   while (queue.length > 0) {
     const current = queue.shift()!;
@@ -497,7 +552,9 @@ function getSoldierAntMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
     for (const next of neighbors) {
       const nextKey = hexKey(next.q, next.r);
       if (!visited.has(nextKey)) {
-        if (isValidGroundSlide(board, current, next)) {
+        // Ant can move to any adjacent hex that passes the gate check
+        // (doesn't need to be empty for intermediate steps)
+        if (canAntSlide(current, next)) {
           visited.add(nextKey);
           queue.push(next);
         }
@@ -505,10 +562,31 @@ function getSoldierAntMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
     }
   }
 
-  // Remove starting position
+  // Remove starting position and filter valid destinations
   visited.delete(hexKey(fromHex.q, fromHex.r));
 
-  return Array.from(visited).map(key => {
+  // Filter: destinations must be empty and touch the swarm
+  const validKeys = Array.from(visited).filter(key => {
+    const [q, r] = key.split(',').map(Number);
+    const hex: AxialHex = { q, r };
+    
+    // Must be empty
+    if (isOccupied(board, hex)) return false;
+    
+    // Must touch at least one piece in the swarm (excluding the starting position)
+    const neighbors = getAllNeighbors(hex);
+    return neighbors.some(n => {
+      const nKey = hexKey(n.q, n.r);
+      if (nKey === hexKey(fromHex.q, fromHex.r)) {
+        // Check if there's still a piece at fromHex after moving
+        const stack = board.get(hexKey(fromHex.q, fromHex.r));
+        return stack && stack.length > 0;
+      }
+      return isOccupied(board, n);
+    });
+  });
+
+  return validKeys.map(key => {
     const [q, r] = key.split(',').map(Number);
     return { q, r };
   });
