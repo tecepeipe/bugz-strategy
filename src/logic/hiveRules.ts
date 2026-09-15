@@ -152,8 +152,11 @@ export function canSlide(
 
   const maxAllowedHeight = Math.max(atHeight, getStackHeight(board, fromHex) - 1, getStackHeight(board, toHex));
 
-  // Gate is blocked if BOTH neighbors are strictly higher than max clearance
-  if (h1 > maxAllowedHeight && h2 > maxAllowedHeight) {
+  // Gate is blocked if BOTH neighbors are occupied and tall enough to block
+  const h1Blocks = h1 > 0 && h1 >= maxAllowedHeight;
+  const h2Blocks = h2 > 0 && h2 >= maxAllowedHeight;
+
+  if (h1Blocks && h2Blocks) {
     return false;
   }
 
@@ -351,7 +354,7 @@ export function getEffectiveBugTypes(
 /**
  * Movement calculator by bug type.
  */
-function getMovesForBugType(
+export function getMovesForBugType(
   board: BoardState,
   fromHex: AxialHex,
   bugType: BugType,
@@ -378,35 +381,30 @@ function getMovesForBugType(
 }
 
 // 1. Queen Bee: 1 ground slide step along perimeter
-function getQueenMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
+export function getQueenMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   const neighbors = getAllNeighbors(fromHex);
   return neighbors.filter(to => isValidGroundSlide(board, fromHex, to));
 }
 
-// 2. Spider: Exactly 3 steps around perimeter without backtracking
-function getSpiderMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
-  const results: AxialHex[] = [];
-
-  // Special slide check for spider: gate check only, no occupancy requirement
-  function canSpiderSlide(current: AxialHex, next: AxialHex): boolean {
-    const common = getCommonNeighbors(current, next);
-    if (common.length !== 2) return false;
-
-    const h1 = getStackHeight(board, common[0]);
-    const h2 = getStackHeight(board, common[1]);
-
-    // Gate check at ground level
-    if (h1 > 0 && h2 > 0) {
-      return false;
-    }
-
-    return true;
+// 2. Spider: Exactly 3 steps around the hive without backtracking.
+// Every step must be a legal one-hex slide: empty destination, open gate,
+// and the spider must stay in contact with the hive. This forbids walking
+// through occupied hexes or wandering away from the hive and back. The
+// moving piece is removed from the board while computing its moves so gate
+// checks treat its origin as empty once it leaves.
+export function getSpiderMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
+  const boardWithoutPiece = cloneBoard(board);
+  const fromStack = boardWithoutPiece.get(hexKey(fromHex.q, fromHex.r));
+  if (fromStack) {
+    if (fromStack.length === 1) boardWithoutPiece.delete(hexKey(fromHex.q, fromHex.r));
+    else fromStack.pop();
   }
 
-  // DFS/BFS path finding of length exactly 3
+  const results = new Set<string>();
+
   function spiderDFS(current: AxialHex, stepCount: number, visitedKeys: Set<string>) {
     if (stepCount === 3) {
-      results.push(current);
+      results.add(hexKey(current.q, current.r));
       return;
     }
 
@@ -414,10 +412,7 @@ function getSpiderMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
     for (const next of neighbors) {
       const nextKey = hexKey(next.q, next.r);
       if (!visitedKeys.has(nextKey)) {
-        // For intermediate steps (0, 1), spider can move to any adjacent hex 
-        // that passes the gate check (doesn't need to be empty)
-        // Only the final step (stepCount 2 -> 3) must land on an empty hex
-        if (canSpiderSlide(current, next)) {
+        if (isValidGroundSlide(boardWithoutPiece, current, next)) {
           const nextVisited = new Set(visitedKeys);
           nextVisited.add(nextKey);
           spiderDFS(next, stepCount + 1, nextVisited);
@@ -429,38 +424,14 @@ function getSpiderMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   const startVisited = new Set<string>([hexKey(fromHex.q, fromHex.r)]);
   spiderDFS(fromHex, 0, startVisited);
 
-  // Filter: final destinations must be empty and touch the swarm
-  const validResults = results.filter(hex => {
-    if (isOccupied(board, hex)) return false;
-    // Must touch at least one piece in the swarm (excluding the starting position)
-    const neighbors = getAllNeighbors(hex);
-    return neighbors.some(n => {
-      const nKey = hexKey(n.q, n.r);
-      if (nKey === hexKey(fromHex.q, fromHex.r)) {
-        // Check if there's still a piece at fromHex after moving
-        const stack = board.get(hexKey(fromHex.q, fromHex.r));
-        return stack && stack.length > 0;
-      }
-      return isOccupied(board, n);
-    });
+  return Array.from(results).map(key => {
+    const [q, r] = key.split(',').map(Number);
+    return { q, r };
   });
-
-  // Remove duplicates
-  const uniqueKeys = new Set<string>();
-  const uniqueResults: AxialHex[] = [];
-  for (const hex of validResults) {
-    const key = hexKey(hex.q, hex.r);
-    if (!uniqueKeys.has(key)) {
-      uniqueKeys.add(key);
-      uniqueResults.push(hex);
-    }
-  }
-
-  return uniqueResults;
 }
 
 // 3. Beetle: 1 step slide, climb up onto adjacent stack, move on top, or step down
-function getBeetleMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
+export function getBeetleMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   const neighbors = getAllNeighbors(fromHex);
   const moves: AxialHex[] = [];
   const currentHeight = getStackHeight(board, fromHex);
@@ -488,7 +459,7 @@ function getBeetleMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
 }
 
 // 4. Grasshopper: Jumps over a straight line of connected pieces to first empty space
-function getGrasshopperMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
+export function getGrasshopperMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   const moves: AxialHex[] = [];
 
   for (let dirIndex = 0; dirIndex < 6; dirIndex++) {
@@ -509,26 +480,23 @@ function getGrasshopperMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   return moves;
 }
 
-// 5. Soldier Ant: Moves any distance around perimeter of hive
-function getSoldierAntMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
+// 5. Soldier Ant: Moves any distance around the perimeter of the hive.
+// Every step must be a legal one-hex slide: empty destination, open gate,
+// and the ant must stay in contact with the hive. This keeps the search
+// bounded to the hive surface and forbids walking through occupied hexes.
+// The moving piece is removed from the board while computing its moves so
+// gate checks treat its origin as empty once it leaves.
+export function getSoldierAntMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
+  const boardWithoutPiece = cloneBoard(board);
+  const fromStack = boardWithoutPiece.get(hexKey(fromHex.q, fromHex.r));
+  if (fromStack) {
+    if (fromStack.length === 1) boardWithoutPiece.delete(hexKey(fromHex.q, fromHex.r));
+    else fromStack.pop();
+  }
+
   const visited = new Set<string>([hexKey(fromHex.q, fromHex.r)]);
   const queue: AxialHex[] = [fromHex];
-
-  // Special slide check for ant: gate check only, no occupancy requirement
-  function canAntSlide(current: AxialHex, next: AxialHex): boolean {
-    const common = getCommonNeighbors(current, next);
-    if (common.length !== 2) return false;
-
-    const h1 = getStackHeight(board, common[0]);
-    const h2 = getStackHeight(board, common[1]);
-
-    // Gate check at ground level
-    if (h1 > 0 && h2 > 0) {
-      return false;
-    }
-
-    return true;
-  }
+  const results = new Set<string>();
 
   while (queue.length > 0) {
     const current = queue.shift()!;
@@ -536,49 +504,23 @@ function getSoldierAntMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
 
     for (const next of neighbors) {
       const nextKey = hexKey(next.q, next.r);
-      if (!visited.has(nextKey)) {
-        // Ant can move to any adjacent hex that passes the gate check
-        // (doesn't need to be empty for intermediate steps)
-        if (canAntSlide(current, next)) {
-          visited.add(nextKey);
-          queue.push(next);
-        }
+      if (visited.has(nextKey)) continue;
+      if (isValidGroundSlide(boardWithoutPiece, current, next)) {
+        visited.add(nextKey);
+        results.add(nextKey);
+        queue.push(next);
       }
     }
   }
 
-  // Remove starting position
-  visited.delete(hexKey(fromHex.q, fromHex.r));
-
-  // Filter: destinations must be empty and touch the swarm
-  const validKeys = Array.from(visited).filter(key => {
-    const [q, r] = key.split(',').map(Number);
-    const hex: AxialHex = { q, r };
-    
-    // Must be empty
-    if (isOccupied(board, hex)) return false;
-    
-    // Must touch at least one piece in the swarm (excluding the starting position)
-    const neighbors = getAllNeighbors(hex);
-    return neighbors.some(n => {
-      const nKey = hexKey(n.q, n.r);
-      if (nKey === hexKey(fromHex.q, fromHex.r)) {
-        // Check if there's still a piece at fromHex after moving
-        const stack = board.get(hexKey(fromHex.q, fromHex.r));
-        return stack && stack.length > 0;
-      }
-      return isOccupied(board, n);
-    });
-  });
-
-  return validKeys.map(key => {
+  return Array.from(results).map(key => {
     const [q, r] = key.split(',').map(Number);
     return { q, r };
   });
 }
 
 // 6. Ladybug: Exactly 3 steps: 2 steps on top of hive, 1 step down to empty ground space
-function getLadybugMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
+export function getLadybugMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   const results = new Set<string>();
 
   // Step 1: Climb onto an adjacent occupied hex
@@ -617,7 +559,7 @@ function getLadybugMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
 }
 
 // 7. Pillbug standard movement (1 ground slide step)
-function getPillbugMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
+export function getPillbugMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   return getQueenMoves(board, fromHex);
 }
 
