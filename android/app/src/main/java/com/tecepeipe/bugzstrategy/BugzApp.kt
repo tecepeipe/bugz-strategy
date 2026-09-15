@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -18,7 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -34,10 +34,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -57,7 +55,7 @@ private val DarkColors = darkColorScheme(
     onSurface = Color(0xFFE2E8F0),
     surfaceVariant = Color(0xFF334155),
     onSurfaceVariant = Color(0xFF94A3B8),
-    outline = Color(0xFF64748B)
+    outline = Color(0xFF64748B),
 )
 
 private val LightColors = lightColorScheme(
@@ -69,7 +67,7 @@ private val LightColors = lightColorScheme(
     onSurface = Color(0xFF0F172A),
     surfaceVariant = Color(0xFFE2E8F0),
     onSurfaceVariant = Color(0xFF475569),
-    outline = Color(0xFF94A3B8)
+    outline = Color(0xFF94A3B8),
 )
 
 // ============================================================================
@@ -82,7 +80,7 @@ enum class BugType(
     val title: String,
     val emoji: String,
     val defaultCount: Int,
-    val isExpansion: Boolean = false
+    val isExpansion: Boolean = false,
 ) {
     QUEEN("Queen Bee", "🐝", 1),
     SPIDER("Spider", "🕷️", 2),
@@ -91,7 +89,7 @@ enum class BugType(
     SOLDIER_ANT("Soldier Ant", "🐜", 3),
     MOSQUITO("Mosquito", "🦟", 1, true),
     LADYBUG("Ladybug", "🐞", 1, true),
-    PILLBUG("Pillbug", "🪳", 1, true)
+    PILLBUG("Pillbug", "🪳", 1, true),
 }
 
 data class Piece(val id: String, val type: BugType, val player: Player)
@@ -99,8 +97,12 @@ data class Piece(val id: String, val type: BugType, val player: Player)
 data class AxialHex(val q: Int, val r: Int) {
     fun key() = "$q,$r"
     fun getNeighbors(): List<AxialHex> = listOf(
-        AxialHex(q + 1, r), AxialHex(q + 1, r - 1), AxialHex(q, r - 1),
-        AxialHex(q - 1, r), AxialHex(q - 1, r + 1), AxialHex(q, r + 1)
+        AxialHex(q + 1, r),
+        AxialHex(q + 1, r - 1),
+        AxialHex(q, r - 1),
+        AxialHex(q - 1, r),
+        AxialHex(q - 1, r + 1),
+        AxialHex(q, r + 1),
     )
     fun neighbors(): List<AxialHex> = getNeighbors()
 }
@@ -111,7 +113,7 @@ enum class AIDifficulty { EASY, MEDIUM, HARD }
 data class ExpansionsConfig(
     val mosquito: Boolean = true,
     val ladybug: Boolean = true,
-    val pillbug: Boolean = true
+    val pillbug: Boolean = true,
 )
 
 data class GameSettings(
@@ -119,7 +121,7 @@ data class GameSettings(
     val aiDifficulty: AIDifficulty = AIDifficulty.MEDIUM,
     val expansions: ExpansionsConfig = ExpansionsConfig(),
     val humanColor: Player = Player.ONE,
-    val tutorialMode: Boolean = false
+    val tutorialMode: Boolean = false,
 )
 
 data class MoveLogEntry(val turn: Int, val player: Player, val text: String)
@@ -131,7 +133,7 @@ data class MoveAction(
     val player: Player,
     val fromHex: AxialHex? = null,
     val toHex: AxialHex,
-    val pillbugTargetHex: AxialHex? = null
+    val pillbugTargetHex: AxialHex? = null,
 ) {
     enum class ActionType { PLACE, MOVE, PILLBUG_SPECIAL }
 }
@@ -139,7 +141,7 @@ data class MoveAction(
 data class PillbugTargetOption(
     val targetHex: AxialHex,
     val piece: Piece,
-    val destinationHexes: List<AxialHex>
+    val destinationHexes: List<AxialHex>,
 )
 
 data class GameStatus(
@@ -147,7 +149,7 @@ data class GameStatus(
     val winner: Player?,
     val isDraw: Boolean,
     val p1QueenSurroundedCount: Int,
-    val p2QueenSurroundedCount: Int
+    val p2QueenSurroundedCount: Int,
 )
 
 // ============================================================================
@@ -235,7 +237,7 @@ fun canSlide(
     board: Map<String, List<Piece>>,
     fromHex: AxialHex,
     toHex: AxialHex,
-    atHeight: Int = 0
+    atHeight: Int = 0,
 ): Boolean {
     val common = getCommonNeighbors(fromHex, toHex)
     if (common.size != 2) return false
@@ -249,7 +251,7 @@ fun canSlide(
     // Empty hexes (height 0) never block movement
     val h1Blocks = h1 > 0 && h1 >= maxAllowedHeight
     val h2Blocks = h2 > 0 && h2 >= maxAllowedHeight
-    
+
     if (h1Blocks && h2Blocks) {
         return false
     }
@@ -259,7 +261,7 @@ fun canSlide(
 fun isValidGroundSlide(
     board: Map<String, List<Piece>>,
     fromHex: AxialHex,
-    toHex: AxialHex
+    toHex: AxialHex,
 ): Boolean {
     if (isOccupied(board, toHex)) return false
     if (!canSlide(board, fromHex, toHex, 0)) return false
@@ -267,8 +269,11 @@ fun isValidGroundSlide(
     val testBoard = cloneBoard(board)
     val stack = testBoard[fromHex.key()]
     if (stack != null) {
-        if (stack.size == 1) testBoard.remove(fromHex.key())
-        else stack.removeAt(stack.size - 1)
+        if (stack.size == 1) {
+            testBoard.remove(fromHex.key())
+        } else {
+            stack.removeAt(stack.size - 1)
+        }
     }
 
     val touchesHive = toHex.getNeighbors().any { isOccupied(testBoard, it) }
@@ -279,7 +284,7 @@ fun isValidGroundSlide(
 fun getValidPlacements(
     board: Map<String, List<Piece>>,
     player: Player,
-    turnCountP: Int
+    turnCountP: Int,
 ): List<AxialHex> {
     val occupied = getAllOccupiedHexes(board)
 
@@ -312,8 +317,11 @@ fun getValidPlacements(
         for (n in neighbors) {
             val topPiece = getTopPiece(board, n)
             if (topPiece != null) {
-                if (topPiece.player == player) touchesFriendly = true
-                else touchesEnemy = true
+                if (topPiece.player == player) {
+                    touchesFriendly = true
+                } else {
+                    touchesEnemy = true
+                }
             }
         }
 
@@ -328,7 +336,7 @@ fun getValidPlacements(
 fun getEffectiveBugTypes(
     board: Map<String, List<Piece>>,
     fromHex: AxialHex,
-    piece: Piece
+    piece: Piece,
 ): List<BugType> {
     if (piece.type != BugType.MOSQUITO) {
         return listOf(piece.type)
@@ -381,7 +389,7 @@ fun getSpiderMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Axi
         for (next in current.getNeighbors()) {
             val nextKey = next.key()
             if (!visitedKeys.contains(nextKey)) {
-                // For intermediate steps (0, 1), spider can move to any adjacent hex 
+                // For intermediate steps (0, 1), spider can move to any adjacent hex
                 // that passes the gate check (doesn't need to be empty)
                 // Only the final step (stepCount 2 -> 3) must land on an empty hex
                 if (canSpiderSlide(current, next)) {
@@ -553,7 +561,7 @@ fun getPillbugMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Ax
 fun getMovesForBugType(
     board: Map<String, List<Piece>>,
     fromHex: AxialHex,
-    bugType: BugType
+    bugType: BugType,
 ): List<AxialHex> {
     return when (bugType) {
         BugType.QUEEN -> getQueenMoves(board, fromHex)
@@ -574,7 +582,7 @@ fun getValidMovesForPiece(
     player: Player,
     turnCountP: Int,
     lastMovedPieceId: String?,
-    expansions: ExpansionsConfig
+    expansions: ExpansionsConfig,
 ): List<AxialHex> {
     if (!isQueenPlaced(board, player)) {
         return emptyList()
@@ -621,7 +629,7 @@ fun getPillbugSpecialTargets(
     board: Map<String, List<Piece>>,
     pillbugHex: AxialHex,
     player: Player,
-    lastMovedPieceId: String?
+    lastMovedPieceId: String?,
 ): List<PillbugTargetOption> {
     if (!isQueenPlaced(board, player)) return emptyList()
 
@@ -646,8 +654,8 @@ fun getPillbugSpecialTargets(
                     PillbugTargetOption(
                         targetHex = adjHex,
                         piece = targetPiece,
-                        destinationHexes = emptyAdjacentHexes
-                    )
+                        destinationHexes = emptyAdjacentHexes,
+                    ),
                 )
             }
         }
@@ -662,7 +670,7 @@ fun getPlayerAllLegalActions(
     reserve: List<Piece>,
     turnCountP: Int,
     lastMovedPieceId: String?,
-    expansions: ExpansionsConfig
+    expansions: ExpansionsConfig,
 ): List<MoveAction> {
     val actions = mutableListOf<MoveAction>()
     val queenPlaced = isQueenPlaced(board, player)
@@ -679,8 +687,8 @@ fun getPlayerAllLegalActions(
                         pieceId = queenPiece.id,
                         bugType = BugType.QUEEN,
                         player = player,
-                        toHex = hex
-                    )
+                        toHex = hex,
+                    ),
                 )
             }
         }
@@ -705,8 +713,8 @@ fun getPlayerAllLegalActions(
                         pieceId = piece.id,
                         bugType = bugType,
                         player = player,
-                        toHex = hex
-                    )
+                        toHex = hex,
+                    ),
                 )
             }
         }
@@ -719,7 +727,12 @@ fun getPlayerAllLegalActions(
             val topPiece = getTopPiece(board, hex)
             if (topPiece != null && topPiece.player == player) {
                 val moves = getValidMovesForPiece(
-                    board, hex, player, turnCountP, lastMovedPieceId, expansions
+                    board,
+                    hex,
+                    player,
+                    turnCountP,
+                    lastMovedPieceId,
+                    expansions,
                 )
 
                 for (dest in moves) {
@@ -730,8 +743,8 @@ fun getPlayerAllLegalActions(
                             bugType = topPiece.type,
                             player = player,
                             fromHex = hex,
-                            toHex = dest
-                        )
+                            toHex = dest,
+                        ),
                     )
                 }
 
@@ -748,8 +761,8 @@ fun getPlayerAllLegalActions(
                                     player = player,
                                     fromHex = hex,
                                     pillbugTargetHex = opt.targetHex,
-                                    toHex = destHex
-                                )
+                                    toHex = destHex,
+                                ),
                             )
                         }
                     }
@@ -805,7 +818,7 @@ class HiveEngine {
         val turnCountP1: Int,
         val turnCountP2: Int,
         val lastMovedPieceId: String?,
-        val history: List<MoveLogEntry>
+        val history: List<MoveLogEntry>,
     )
 
     fun snapshot(): EngineSnapshot {
@@ -817,7 +830,7 @@ class HiveEngine {
             turnCountP1 = turnCountP1,
             turnCountP2 = turnCountP2,
             lastMovedPieceId = lastMovedPieceId,
-            history = history.toList()
+            history = history.toList(),
         )
     }
 
@@ -881,7 +894,12 @@ class HiveEngine {
 
     fun movesFor(hex: AxialHex): List<AxialHex> {
         return getValidMovesForPiece(
-            board, hex, currentPlayer, turnCountFor(currentPlayer), lastMovedPieceId, expansions
+            board,
+            hex,
+            currentPlayer,
+            turnCountFor(currentPlayer),
+            lastMovedPieceId,
+            expansions,
         )
     }
 
@@ -895,7 +913,12 @@ class HiveEngine {
 
     fun legalActions(): List<MoveAction> {
         return getPlayerAllLegalActions(
-            board, currentPlayer, reserveFor(currentPlayer), turnCountFor(currentPlayer), lastMovedPieceId, expansions
+            board,
+            currentPlayer,
+            reserveFor(currentPlayer),
+            turnCountFor(currentPlayer),
+            lastMovedPieceId,
+            expansions,
         )
     }
 
@@ -912,13 +935,18 @@ class HiveEngine {
             }
             // Verify the destination is actually valid
             val validMoves = getValidMovesForPiece(
-                board, action.fromHex, action.player, turnCountFor(action.player), lastMovedPieceId, expansions
+                board,
+                action.fromHex,
+                action.player,
+                turnCountFor(action.player),
+                lastMovedPieceId,
+                expansions,
             )
             if (!validMoves.any { it.q == action.toHex.q && it.r == action.toHex.r }) {
                 return "Invalid move: Destination not reachable!"
             }
         }
-        
+
         var logDesc = ""
         var actuallyMovedId: String? = null
 
@@ -971,8 +999,8 @@ class HiveEngine {
             MoveLogEntry(
                 turn = if (action.player == Player.ONE) turnCountP1 else turnCountP2,
                 player = action.player,
-                text = logDesc
-            )
+                text = logDesc,
+            ),
         )
 
         if (action.player == Player.ONE) {
@@ -982,7 +1010,7 @@ class HiveEngine {
             turnCountP2++
             currentPlayer = Player.ONE
         }
-        
+
         return null // Success
     }
 
@@ -1004,10 +1032,15 @@ fun computeAIMove(
     turnCountHuman: Int,
     difficulty: AIDifficulty,
     lastMovedPieceId: String?,
-    expansions: ExpansionsConfig
+    expansions: ExpansionsConfig,
 ): MoveAction? {
     val legalActions = getPlayerAllLegalActions(
-        board, aiPlayer, aiReserve, turnCountAI, lastMovedPieceId, expansions
+        board,
+        aiPlayer,
+        aiReserve,
+        turnCountAI,
+        lastMovedPieceId,
+        expansions,
     )
 
     if (legalActions.isEmpty()) return null
@@ -1016,11 +1049,11 @@ fun computeAIMove(
         AIDifficulty.EASY -> computeEasyMove(board, aiPlayer, legalActions, turnCountAI)
         AIDifficulty.MEDIUM -> computeMediumMove(
             board, aiPlayer, aiReserve, humanReserve, turnCountAI, turnCountHuman,
-            legalActions, lastMovedPieceId, expansions
+            legalActions, lastMovedPieceId, expansions,
         )
         AIDifficulty.HARD -> computeHardMinimaxMove(
             board, aiPlayer, aiReserve, humanReserve, turnCountAI, turnCountHuman,
-            legalActions, lastMovedPieceId, expansions
+            legalActions, lastMovedPieceId, expansions,
         )
     }
 }
@@ -1029,7 +1062,7 @@ fun computeEasyMove(
     board: Map<String, List<Piece>>,
     aiPlayer: Player,
     legalActions: List<MoveAction>,
-    turnCountAI: Int
+    turnCountAI: Int,
 ): MoveAction {
     // Play the queen when it is due (by the 4th turn) if the AI forgot to place it earlier.
     if (!isQueenPlaced(board, aiPlayer) && turnCountAI >= 4) {
@@ -1051,18 +1084,28 @@ fun computeMediumMove(
     turnCountHuman: Int,
     legalActions: List<MoveAction>,
     lastMovedPieceId: String?,
-    expansions: ExpansionsConfig
+    expansions: ExpansionsConfig,
 ): MoveAction {
     var bestScore = -1e9
     var bestActions = mutableListOf<MoveAction>()
 
     for (action in legalActions) {
         val (nextBoard, nextAIReserve, nextHumanReserve) = simulateAction(
-            board, action, aiPlayer, aiReserve, humanReserve
+            board,
+            action,
+            aiPlayer,
+            aiReserve,
+            humanReserve,
         )
 
         val score = evaluateBoard(
-            nextBoard, aiPlayer, nextAIReserve, nextHumanReserve, turnCountAI, turnCountHuman, expansions
+            nextBoard,
+            aiPlayer,
+            nextAIReserve,
+            nextHumanReserve,
+            turnCountAI,
+            turnCountHuman,
+            expansions,
         )
 
         if (score > bestScore + 1e-9) {
@@ -1085,7 +1128,7 @@ fun computeHardMinimaxMove(
     turnCountHuman: Int,
     legalActions: List<MoveAction>,
     lastMovedPieceId: String?,
-    expansions: ExpansionsConfig
+    expansions: ExpansionsConfig,
 ): MoveAction {
     val depth = 2
     val humanPlayer: Player = if (aiPlayer == Player.ONE) Player.TWO else Player.ONE
@@ -1097,7 +1140,11 @@ fun computeHardMinimaxMove(
 
     for (action in legalActions) {
         val (nextBoard, nextAIReserve, nextHumanReserve) = simulateAction(
-            board, action, aiPlayer, aiReserve, humanReserve
+            board,
+            action,
+            aiPlayer,
+            aiReserve,
+            humanReserve,
         )
 
         val status = checkGameStatus(nextBoard)
@@ -1118,7 +1165,7 @@ fun computeHardMinimaxMove(
             turnCountAI + 1,
             turnCountHuman,
             actuallyMovedPieceId(board, action),
-            expansions
+            expansions,
         )
 
         if (value > bestScore) {
@@ -1144,7 +1191,7 @@ fun minimax(
     turnAI: Int,
     turnHuman: Int,
     lastMovedPieceId: String?,
-    expansions: ExpansionsConfig
+    expansions: ExpansionsConfig,
 ): Double {
     var alpha = alpha
     var beta = beta
@@ -1164,11 +1211,15 @@ fun minimax(
 
     val currentPlayer = if (isMaximizing) aiPlayer else humanPlayer
     val currentReserve = if (isMaximizing) aiReserve else humanReserve
-    val oppReserve = if (isMaximizing) humanReserve else aiReserve
     val turnCount = if (isMaximizing) turnAI else turnHuman
 
     val legalActions = getPlayerAllLegalActions(
-        board, currentPlayer, currentReserve, turnCount, lastMovedPieceId, expansions
+        board,
+        currentPlayer,
+        currentReserve,
+        turnCount,
+        lastMovedPieceId,
+        expansions,
     )
 
     if (legalActions.isEmpty()) {
@@ -1177,7 +1228,7 @@ fun minimax(
             aiPlayer, humanPlayer, aiReserve, humanReserve,
             if (isMaximizing) turnAI + 1 else turnAI,
             if (isMaximizing) turnHuman else turnHuman + 1,
-            lastMovedPieceId, expansions
+            lastMovedPieceId, expansions,
         )
     }
 
@@ -1185,13 +1236,17 @@ fun minimax(
         var maxEval = -1e9
         for (action in legalActions) {
             val (nextBoard, nextAIReserve, nextHumanReserve) = simulateAction(
-                board, action, aiPlayer, aiReserve, humanReserve
+                board,
+                action,
+                aiPlayer,
+                aiReserve,
+                humanReserve,
             )
 
             val evalValue = minimax(
                 nextBoard, depth - 1, alpha, beta, false,
                 aiPlayer, humanPlayer, nextAIReserve, nextHumanReserve,
-                turnAI + 1, turnHuman, actuallyMovedPieceId(board, action), expansions
+                turnAI + 1, turnHuman, actuallyMovedPieceId(board, action), expansions,
             )
 
             maxEval = maxOf(maxEval, evalValue)
@@ -1203,13 +1258,17 @@ fun minimax(
         var minEval = 1e9
         for (action in legalActions) {
             val (nextBoard, nextAIReserve, nextHumanReserve) = simulateAction(
-                board, action, humanPlayer, aiReserve, humanReserve
+                board,
+                action,
+                humanPlayer,
+                aiReserve,
+                humanReserve,
             )
 
             val evalValue = minimax(
                 nextBoard, depth - 1, alpha, beta, true,
                 aiPlayer, humanPlayer, nextAIReserve, nextHumanReserve,
-                turnAI, turnHuman + 1, actuallyMovedPieceId(board, action), expansions
+                turnAI, turnHuman + 1, actuallyMovedPieceId(board, action), expansions,
             )
 
             minEval = minOf(minEval, evalValue)
@@ -1227,7 +1286,7 @@ fun evaluateBoard(
     humanReserve: List<Piece>,
     turnAI: Int,
     turnHuman: Int,
-    expansions: ExpansionsConfig
+    expansions: ExpansionsConfig,
 ): Double {
     val humanPlayer: Player = if (aiPlayer == Player.ONE) Player.TWO else Player.ONE
 
@@ -1310,7 +1369,7 @@ fun simulateAction(
     action: MoveAction,
     actingPlayer: Player,
     aiReserve: List<Piece>,
-    humanReserve: List<Piece>
+    humanReserve: List<Piece>,
 ): Triple<MutableMap<String, MutableList<Piece>>, List<Piece>, List<Piece>> {
     val nextBoard = cloneBoard(board)
     var nextAIReserve = aiReserve.filter { it.id != action.pieceId }
@@ -1358,11 +1417,16 @@ fun computeTutorialMove(
     turnCountAI: Int,
     turnCountHuman: Int,
     lastMovedPieceId: String?,
-    expansions: ExpansionsConfig
+    expansions: ExpansionsConfig,
 ): MoveAction? {
     // Tutorial AI makes very simple, predictable moves to demonstrate gameplay
     val legalActions = getPlayerAllLegalActions(
-        board, aiPlayer, aiReserve, turnCountAI, lastMovedPieceId, expansions
+        board,
+        aiPlayer,
+        aiReserve,
+        turnCountAI,
+        lastMovedPieceId,
+        expansions,
     )
 
     if (legalActions.isEmpty()) return null
@@ -1387,7 +1451,7 @@ fun computeTutorialMove(
     // Priority 3: Simple defensive moves - prefer placing pieces adjacent to own pieces
     if (legalActions.any { it.type == MoveAction.ActionType.PLACE }) {
         val placeActions = legalActions.filter { it.type == MoveAction.ActionType.PLACE }
-        
+
         // Try to find a placement that connects to our own pieces
         for (action in placeActions) {
             val neighbors = action.toHex.neighbors()
@@ -1403,7 +1467,7 @@ fun computeTutorialMove(
                 return action
             }
         }
-        
+
         // If no connecting placement found, just pick first placement
         return placeActions[0]
     }
@@ -1428,7 +1492,9 @@ fun HiveApp() {
     val engine = remember { HiveEngine() }
 
     var gameState by remember { mutableStateOf(0) }
-    fun bump() { gameState++ }
+    fun bump() {
+        gameState++
+    }
 
     var settings by remember {
         mutableStateOf(GameSettings(GameMode.AI, AIDifficulty.MEDIUM, ExpansionsConfig(), Player.ONE))
@@ -1489,7 +1555,7 @@ fun HiveApp() {
             delay(600)
 
             val humanPlayer: Player = if (aiPlayer == Player.ONE) Player.TWO else Player.ONE
-            
+
             // In tutorial mode, make simple predictable moves for teaching
             val action = if (settings.mode == GameMode.TUTORIAL) {
                 computeTutorialMove(
@@ -1500,7 +1566,7 @@ fun HiveApp() {
                     engine.turnCountFor(aiPlayer),
                     engine.turnCountFor(humanPlayer),
                     engine.lastMovedPieceId,
-                    settings.expansions
+                    settings.expansions,
                 )
             } else {
                 computeAIMove(
@@ -1512,7 +1578,7 @@ fun HiveApp() {
                     engine.turnCountFor(humanPlayer),
                     settings.aiDifficulty,
                     engine.lastMovedPieceId,
-                    settings.expansions
+                    settings.expansions,
                 )
             }
 
@@ -1664,8 +1730,8 @@ fun HiveApp() {
                     pieceId = piece.id,
                     bugType = piece.type,
                     player = engine.currentPlayer,
-                    toHex = hex
-                )
+                    toHex = hex,
+                ),
             )
             return
         }
@@ -1682,8 +1748,8 @@ fun HiveApp() {
                         player = engine.currentPlayer,
                         fromHex = selectedHex,
                         pillbugTargetHex = pillbugTargetHex,
-                        toHex = hex
-                    )
+                        toHex = hex,
+                    ),
                 )
             } else {
                 executeMove(
@@ -1693,8 +1759,8 @@ fun HiveApp() {
                         bugType = topPiece.type,
                         player = engine.currentPlayer,
                         fromHex = selectedHex,
-                        toHex = hex
-                    )
+                        toHex = hex,
+                    ),
                 )
             }
             return
@@ -1735,7 +1801,7 @@ fun HiveApp() {
     }
 
     MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors
+        colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors,
     ) {
         Scaffold(
             topBar = {
@@ -1752,37 +1818,40 @@ fun HiveApp() {
                                     else -> "Pass & Play"
                                 },
                                 fontSize = 15.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     },
                     actions = {
                         Text(
-                            text = if (gameOver != null)
+                            text = if (gameOver != null) {
                                 "Winner: ${if (gameOver == Player.ONE) "White" else if (gameOver == Player.TWO) "Black" else "Draw"}"
-                            else
-                                "Turn: P${if (engine.currentPlayer == Player.ONE) 1 else 2} · T${gameState}",
+                            } else {
+                                "Turn: P${if (engine.currentPlayer == Player.ONE) 1 else 2} · T$gameState"
+                            },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (engine.currentPlayer == Player.ONE)
+                            color = if (engine.currentPlayer == Player.ONE) {
                                 MaterialTheme.colorScheme.primary
-                            else
-                                if (isSystemInDarkTheme()) Color(0xFF93C5FD) else Color(0xFF1D4ED8),
-                            modifier = Modifier.align(Alignment.CenterVertically)
+                            } else {
+                                if (isSystemInDarkTheme()) Color(0xFF93C5FD) else Color(0xFF1D4ED8)
+                            },
+                            modifier = Modifier.align(Alignment.CenterVertically),
                         )
                         Spacer(Modifier.width(8.dp))
                         IconButton(
                             onClick = { handleUndo() },
-                            enabled = undoStack.isNotEmpty() && !isAITurn
+                            enabled = undoStack.isNotEmpty() && !isAITurn,
                         ) {
                             Text(
                                 text = "\u21B6",
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (undoStack.isNotEmpty() && !isAITurn)
+                                color = if (undoStack.isNotEmpty() && !isAITurn) {
                                     MaterialTheme.colorScheme.primary
-                                else
+                                } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                             )
                         }
                         IconButton(onClick = { isSetupOpen = true }) {
@@ -1790,25 +1859,25 @@ fun HiveApp() {
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
+                        containerColor = MaterialTheme.colorScheme.background,
+                    ),
                 )
-            }
+            },
         ) { paddingValues ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .background(MaterialTheme.colorScheme.background)
+                    .background(MaterialTheme.colorScheme.background),
             ) {
                 Column(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     // Main Interactive Hexagon Canvas (fills space above reserve bar)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f)
+                            .weight(1f),
                     ) {
                         HexCanvasBoard(
                             board = engine.board,
@@ -1817,7 +1886,7 @@ fun HiveApp() {
                             pillbugTargetHex = pillbugTargetHex,
                             pillbugDestinations = pillbugDestinations,
                             lastMovedHex = lastMovedHex,
-                            onHexClick = { hex -> handleHexClick(hex) }
+                            onHexClick = { hex -> handleHexClick(hex) },
                         )
 
                         // Toast notification
@@ -1827,14 +1896,14 @@ fun HiveApp() {
                                 shape = RoundedCornerShape(16.dp),
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
-                                    .padding(12.dp)
+                                    .padding(12.dp),
                             ) {
                                 Text(
                                     text = msg,
                                     color = Color.Black,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                 )
                             }
                         }
@@ -1844,7 +1913,7 @@ fun HiveApp() {
                             history = engine.history,
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .padding(12.dp)
+                                .padding(12.dp),
                         )
                     }
 
@@ -1858,7 +1927,7 @@ fun HiveApp() {
                         onSelectBug = { bug -> handleReserveSelect(bug) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp)
+                            .padding(12.dp),
                     )
                 }
 
@@ -1871,7 +1940,7 @@ fun HiveApp() {
                         },
                         onDismiss = {
                             if (gameOver != null || engine.board.isNotEmpty()) isSetupOpen = false
-                        }
+                        },
                     )
                 }
 
@@ -1885,7 +1954,7 @@ fun HiveApp() {
                             gameOver = null
                             isDraw = false
                             isSetupOpen = true
-                        }
+                        },
                     )
                 }
             }
@@ -1915,8 +1984,9 @@ private fun pixelToHex(pos: Offset, center: Offset, radius: Float): AxialHex {
     val dr = abs(rr - r)
     val ds = abs(rs - s)
 
-    if (dq > dr && dq > ds) rq = -rr - rs
-    else if (dr > ds) rr = -rq - rs
+    if (dq > dr && dq > ds) {
+        rq = -rr - rs
+    } else if (dr > ds) rr = -rq - rs
 
     return AxialHex(rq, rr)
 }
@@ -1929,7 +1999,7 @@ fun HexCanvasBoard(
     pillbugTargetHex: AxialHex?,
     pillbugDestinations: List<AxialHex>,
     lastMovedHex: AxialHex?,
-    onHexClick: (AxialHex) -> Unit
+    onHexClick: (AxialHex) -> Unit,
 ) {
     var scale by remember { mutableStateOf(1f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
@@ -1982,7 +2052,7 @@ fun HexCanvasBoard(
                     val hex = pixelToHex(Offset(tap.x, tap.y), center, hexRadius)
                     onHexClick(hex)
                 }
-            }
+            },
     ) {
         val center = Offset(size.width / 2f + pan.x, size.height / 2f + pan.y)
         val hexRadius = baseRadius.toPx() * scale
@@ -2043,17 +2113,17 @@ fun HexCanvasBoard(
                 val emojiSizeSp = with(density) { (hexRadius * 1.05f).toSp() }
                 val layout = textMeasurer.measure(
                     AnnotatedString(topPiece.type.emoji),
-                    style = TextStyle(fontSize = emojiSizeSp)
+                    style = TextStyle(fontSize = emojiSizeSp),
                 )
                 drawText(
                     layout,
-                    topLeft = Offset(x - layout.size.width / 2f, y - layout.size.height / 2f)
+                    topLeft = Offset(x - layout.size.width / 2f, y - layout.size.height / 2f),
                 )
 
                 if (stackHeight > 1) {
                     val badge = textMeasurer.measure(
                         AnnotatedString(stackHeight.toString()),
-                        style = TextStyle(fontSize = 12.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                        style = TextStyle(fontSize = 12.sp, color = Color.Black, fontWeight = FontWeight.Bold),
                     )
                     val badgeCenter = Offset(x + hexRadius * 0.72f, y - hexRadius * 0.72f)
                     drawCircle(color = Color(0xFFF59E0B), radius = 12f, center = badgeCenter)
@@ -2061,8 +2131,8 @@ fun HexCanvasBoard(
                         badge,
                         topLeft = Offset(
                             badgeCenter.x - badge.size.width / 2f,
-                            badgeCenter.y - badge.size.height / 2f
-                        )
+                            badgeCenter.y - badge.size.height / 2f,
+                        ),
                     )
                 }
 
@@ -2071,19 +2141,19 @@ fun HexCanvasBoard(
                 drawCircle(
                     color = dotColor,
                     radius = 7f,
-                    center = Offset(x - hexRadius * 0.7f, y - hexRadius * 0.7f)
+                    center = Offset(x - hexRadius * 0.7f, y - hexRadius * 0.7f),
                 )
                 drawCircle(
                     color = if (topPiece.player == Player.ONE) Color(0xFFCBD5E1) else Color(0xFF64748B),
                     radius = 7f,
                     center = Offset(x - hexRadius * 0.7f, y - hexRadius * 0.7f),
-                    style = Stroke(width = 1.5f)
+                    style = Stroke(width = 1.5f),
                 )
             } else if (isValidDest || isPillbugDest) {
                 drawCircle(
                     color = Color(0xFF10B981),
                     radius = 9f,
-                    center = Offset(x, y)
+                    center = Offset(x, y),
                 )
             }
         }
@@ -2097,7 +2167,7 @@ fun ReserveBar(
     isEnabled: Boolean,
     queenDue: Boolean,
     onSelectBug: (BugType) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val grouped = reserve.groupBy { it.type }
     val colors = MaterialTheme.colorScheme
@@ -2106,11 +2176,11 @@ fun ReserveBar(
         shape = RoundedCornerShape(24.dp),
         color = colors.surface,
         tonalElevation = 8.dp,
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
     ) {
         LazyRow(
             contentPadding = PaddingValues(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(grouped.entries.toList()) { entry ->
                 val bug = entry.key
@@ -2126,23 +2196,23 @@ fun ReserveBar(
                                 isSelected -> colors.primary
                                 !cardEnabled -> colors.background
                                 else -> colors.surfaceVariant
-                            }
+                            },
                         )
                         .border(
                             width = if (isSelected) 2.dp else 1.dp,
                             color = if (isSelected) colors.primary else colors.outline,
-                            shape = RoundedCornerShape(18.dp)
+                            shape = RoundedCornerShape(18.dp),
                         )
                         .clickable(enabled = cardEnabled) { onSelectBug(bug) }
                         .sizeIn(minHeight = 96.dp, minWidth = 112.dp)
                         .padding(horizontal = 12.dp, vertical = 10.dp),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = bug.emoji,
                             fontSize = 46.sp,
-                            color = if (isSelected) colors.onPrimary else colors.onSurface
+                            color = if (isSelected) colors.onPrimary else colors.onSurface,
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -2150,7 +2220,7 @@ fun ReserveBar(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isSelected) colors.onPrimary else colors.onSurfaceVariant,
-                            maxLines = 1
+                            maxLines = 1,
                         )
                     }
 
@@ -2162,13 +2232,13 @@ fun ReserveBar(
                             .size(28.dp)
                             .clip(CircleShape)
                             .background(if (isSelected) colors.onPrimary else colors.primary),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = "$count",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Black,
-                            color = if (isSelected) colors.primary else colors.onPrimary
+                            color = if (isSelected) colors.primary else colors.onPrimary,
                         )
                     }
                 }
@@ -2185,14 +2255,14 @@ fun MoveLogOverlay(history: List<MoveLogEntry>, modifier: Modifier = Modifier) {
 
     Row(
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         // Toggle tab pinned to the side
         Surface(
             shape = RoundedCornerShape(10.dp),
             color = colors.surface.copy(alpha = 0.9f),
             border = BorderStroke(1.dp, colors.outline),
-            onClick = { expanded = !expanded }
+            onClick = { expanded = !expanded },
         ) {
             Text(
                 text = if (expanded) "❯" else "❮",
@@ -2200,7 +2270,7 @@ fun MoveLogOverlay(history: List<MoveLogEntry>, modifier: Modifier = Modifier) {
                 fontWeight = FontWeight.Black,
                 color = colors.primary,
                 modifier = Modifier
-                    .padding(horizontal = 8.dp, vertical = 14.dp)
+                    .padding(horizontal = 8.dp, vertical = 14.dp),
             )
         }
 
@@ -2209,7 +2279,7 @@ fun MoveLogOverlay(history: List<MoveLogEntry>, modifier: Modifier = Modifier) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = colors.background.copy(alpha = 0.9f),
-                border = BorderStroke(1.dp, colors.outline)
+                border = BorderStroke(1.dp, colors.outline),
             ) {
                 LazyColumn(contentPadding = PaddingValues(8.dp)) {
                     item {
@@ -2217,7 +2287,7 @@ fun MoveLogOverlay(history: List<MoveLogEntry>, modifier: Modifier = Modifier) {
                             "Move Log",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.onSurfaceVariant
+                            color = colors.onSurfaceVariant,
                         )
                     }
                     items(history.takeLast(8).reversed()) { entry ->
@@ -2225,7 +2295,7 @@ fun MoveLogOverlay(history: List<MoveLogEntry>, modifier: Modifier = Modifier) {
                             text = "${entry.turn}. P${if (entry.player == Player.ONE) 1 else 2}: ${entry.text}",
                             fontSize = 11.sp,
                             color = colors.onSurface,
-                            modifier = Modifier.padding(vertical = 1.dp)
+                            modifier = Modifier.padding(vertical = 1.dp),
                         )
                     }
                 }
@@ -2239,7 +2309,7 @@ fun MoveLogOverlay(history: List<MoveLogEntry>, modifier: Modifier = Modifier) {
 fun SetupModal(
     currentSettings: GameSettings,
     onStart: (GameSettings) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var mode by remember { mutableStateOf(currentSettings.mode) }
     var diff by remember { mutableStateOf(currentSettings.aiDifficulty) }
@@ -2264,17 +2334,17 @@ fun SetupModal(
                     FilterChip(
                         selected = mode == GameMode.PASS_AND_PLAY,
                         onClick = { mode = GameMode.PASS_AND_PLAY },
-                        label = { Text("Pass & Play") }
+                        label = { Text("Pass & Play") },
                     )
                     FilterChip(
                         selected = mode == GameMode.AI,
                         onClick = { mode = GameMode.AI },
-                        label = { Text("VS AI Engine") }
+                        label = { Text("VS AI Engine") },
                     )
                     FilterChip(
                         selected = mode == GameMode.TUTORIAL,
                         onClick = { mode = GameMode.TUTORIAL },
-                        label = { Text("🎓 Tutorial") }
+                        label = { Text("🎓 Tutorial") },
                     )
                 }
 
@@ -2285,7 +2355,7 @@ fun SetupModal(
                             FilterChip(
                                 selected = diff == d,
                                 onClick = { diff = d },
-                                label = { Text(d.name) }
+                                label = { Text(d.name) },
                             )
                         }
                     }
@@ -2293,19 +2363,19 @@ fun SetupModal(
                     Text("You play as:", fontWeight = FontWeight.SemiBold)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         FilterChip(
                             selected = humanColor == Player.ONE,
                             onClick = { humanColor = Player.ONE },
                             label = { Text("White") },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                         FilterChip(
                             selected = humanColor == Player.TWO,
                             onClick = { humanColor = Player.TWO },
                             label = { Text("Black") },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
@@ -2316,19 +2386,19 @@ fun SetupModal(
                         selected = mosquito,
                         onClick = { mosquito = !mosquito },
                         label = { Text("🦟 Mosquito") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
                     FilterChip(
                         selected = ladybug,
                         onClick = { ladybug = !ladybug },
                         label = { Text("🐞 Ladybug") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
                     FilterChip(
                         selected = pillbug,
                         onClick = { pillbug = !pillbug },
                         label = { Text("💊 Pillbug") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
@@ -2342,17 +2412,17 @@ fun SetupModal(
                             aiDifficulty = diff,
                             expansions = ExpansionsConfig(mosquito, ladybug, pillbug),
                             humanColor = humanColor,
-                            tutorialMode = (mode == GameMode.TUTORIAL)
-                        )
+                            tutorialMode = (mode == GameMode.TUTORIAL),
+                        ),
                     )
-                }
+                },
             ) {
                 Text(if (mode == GameMode.TUTORIAL) "Start Tutorial" else "Start Match")
             }
         },
         dismissButton = {
             TextButton(onClick = { showRules = true }) { Text("📖 Learn to Play") }
-        }
+        },
     )
 }
 
@@ -2367,12 +2437,12 @@ fun RulesDialog(onClose: () -> Unit) {
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
                     "🎯 Goal: Surround the opponent's Queen Bee with pieces on all six sides. " +
                         "First to do so wins; both surrounded at once is a draw.",
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
                 Text("📜 Core Rules", fontWeight = FontWeight.Bold)
                 Text(
@@ -2384,52 +2454,52 @@ fun RulesDialog(onClose: () -> Unit) {
                         "• The Hive must always stay connected. You may never move a piece that would " +
                         "split the Hive, and you may not move a piece into a gap unless it still fits " +
                         "the freedom-to-move rule (no squeezing between stacked pieces).",
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
                 Text("🦗 Insect Movements", fontWeight = FontWeight.Bold)
 
                 Text(
                     "🐝 Queen Bee — moves exactly 1 hex per turn.",
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
                 Text(
                     "🕷️ Spider — crawls exactly 3 hexes along the outside edge, never retracing.",
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
                 Text(
                     "🪲 Beetle — moves 1 hex and can climb on top of other pieces (including a " +
                         "Queen) to block them; a beetle on top moves like a beetle over the stack.",
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
                 Text(
                     "🦗 Grasshopper — jumps in a straight line over at least one piece, landing on " +
                         "the first empty hex in that line.",
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
                 Text(
                     "🐜 Soldier Ant — may slide any number of hexes along the outside of the Hive.",
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
                 Text(
                     "🦟 Mosquito — copies the movement (or pillbug ability) of any piece it touches.",
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
                 Text(
                     "🐞 Ladybug — moves exactly 2 hexes on top of the Hive, then 1 hex back down " +
                         "to the board (may land on empty board hexes).",
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
                 Text(
                     "🪳 Pillbug — may not move itself, but it can move an adjacent enemy or friendly " +
                         "piece 2 hexes: up onto itself, then down into an adjacent empty space. The " +
                         "moved piece is stunned and cannot move on the opponent's next turn.",
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
             }
         },
         confirmButton = {
             TextButton(onClick = onClose) { Text("Got it") }
-        }
+        },
     )
 }
 
@@ -2438,7 +2508,7 @@ fun GameOverDialog(
     winner: Player?,
     isDraw: Boolean,
     onRematch: () -> Unit,
-    onNewSetup: () -> Unit
+    onNewSetup: () -> Unit,
 ) {
     val title = if (isDraw) "Draw!" else "Player ${if (winner == Player.ONE) 1 else 2} Wins!"
 
@@ -2447,8 +2517,11 @@ fun GameOverDialog(
         title = { Text("🏆 $title", fontWeight = FontWeight.Bold) },
         text = {
             Text(
-                if (isDraw) "Both Queens are surrounded. It's a draw!"
-                else "The Queen of Player ${if (winner == Player.ONE) 2 else 1} is surrounded. Well played!"
+                if (isDraw) {
+                    "Both Queens are surrounded. It's a draw!"
+                } else {
+                    "The Queen of Player ${if (winner == Player.ONE) 2 else 1} is surrounded. Well played!"
+                },
             )
         },
         confirmButton = {
@@ -2456,7 +2529,7 @@ fun GameOverDialog(
         },
         dismissButton = {
             TextButton(onClick = onNewSetup) { Text("New Game Setup") }
-        }
+        },
     )
 }
 
