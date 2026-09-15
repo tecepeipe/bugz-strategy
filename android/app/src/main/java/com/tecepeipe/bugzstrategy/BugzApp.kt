@@ -1410,7 +1410,7 @@ fun HiveApp() {
     var executeMoveImpl: ((MoveAction) -> Unit)? = null
 
     fun requestAIMove() {
-        if (settings.mode != GameMode.AI) return
+        if (settings.mode != GameMode.AI && settings.mode != GameMode.TUTORIAL) return
         if (gameOver != null || isSetupOpen) return
         if (engine.currentPlayer != aiPlayer) return
         if (isAITurn) return
@@ -1420,17 +1420,32 @@ fun HiveApp() {
             delay(600)
 
             val humanPlayer: Player = if (aiPlayer == Player.ONE) Player.TWO else Player.ONE
-            val action = computeAIMove(
-                engine.board,
-                aiPlayer,
-                engine.reserveFor(aiPlayer),
-                engine.reserveFor(humanPlayer),
-                engine.turnCountFor(aiPlayer),
-                engine.turnCountFor(humanPlayer),
-                settings.aiDifficulty,
-                engine.lastMovedPieceId,
-                settings.expansions
-            )
+            
+            // In tutorial mode, make simple predictable moves for teaching
+            val action = if (settings.mode == GameMode.TUTORIAL) {
+                computeTutorialMove(
+                    engine.board,
+                    aiPlayer,
+                    engine.reserveFor(aiPlayer),
+                    engine.reserveFor(humanPlayer),
+                    engine.turnCountFor(aiPlayer),
+                    engine.turnCountFor(humanPlayer),
+                    engine.lastMovedPieceId,
+                    settings.expansions
+                )
+            } else {
+                computeAIMove(
+                    engine.board,
+                    aiPlayer,
+                    engine.reserveFor(aiPlayer),
+                    engine.reserveFor(humanPlayer),
+                    engine.turnCountFor(aiPlayer),
+                    engine.turnCountFor(humanPlayer),
+                    settings.aiDifficulty,
+                    engine.lastMovedPieceId,
+                    settings.expansions
+                )
+            }
 
             // Guard: game may have been restarted while the AI was thinking
             if (gameOver != null || engine.currentPlayer != aiPlayer || !isAITurn) {
@@ -2187,6 +2202,11 @@ fun SetupModal(
                         onClick = { mode = GameMode.AI },
                         label = { Text("VS AI Engine") }
                     )
+                    FilterChip(
+                        selected = mode == GameMode.TUTORIAL,
+                        onClick = { mode = GameMode.TUTORIAL },
+                        label = { Text("🎓 Tutorial") }
+                    )
                 }
 
                 if (mode == GameMode.AI) {
@@ -2252,12 +2272,13 @@ fun SetupModal(
                             mode = mode,
                             aiDifficulty = diff,
                             expansions = ExpansionsConfig(mosquito, ladybug, pillbug),
-                            humanColor = humanColor
+                            humanColor = humanColor,
+                            tutorialMode = (mode == GameMode.TUTORIAL)
                         )
                     )
                 }
             ) {
-                Text("Start Match")
+                Text(if (mode == GameMode.TUTORIAL) "Start Tutorial" else "Start Match")
             }
         },
         dismissButton = {
