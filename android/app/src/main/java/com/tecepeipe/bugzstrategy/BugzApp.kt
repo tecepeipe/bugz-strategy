@@ -356,6 +356,22 @@ fun getQueenMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Axia
 fun getSpiderMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<AxialHex> {
     val results = mutableListOf<AxialHex>()
 
+    // Special slide check for spider: gate check only, no occupancy requirement
+    fun canSpiderSlide(current: AxialHex, next: AxialHex): Boolean {
+        val common = getCommonNeighbors(current, next)
+        if (common.size != 2) return false
+
+        val h1 = getStackHeight(board, common[0])
+        val h2 = getStackHeight(board, common[1])
+
+        // Gate check at ground level
+        if (h1 > 0 && h2 > 0) {
+            return false
+        }
+
+        return true
+    }
+
     fun spiderDFS(current: AxialHex, stepCount: Int, visitedKeys: Set<String>) {
         if (stepCount == 3) {
             results.add(current)
@@ -364,7 +380,10 @@ fun getSpiderMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Axi
         for (next in current.getNeighbors()) {
             val nextKey = next.key()
             if (!visitedKeys.contains(nextKey)) {
-                if (isValidGroundSlide(board, current, next)) {
+                // For intermediate steps (0, 1), spider can move to any adjacent hex 
+                // that passes the gate check (doesn't need to be empty)
+                // Only the final step (stepCount 2 -> 3) must land on an empty hex
+                if (canSpiderSlide(current, next)) {
                     val nextVisited = visitedKeys.toMutableSet()
                     nextVisited.add(nextKey)
                     spiderDFS(next, stepCount + 1, nextVisited)
@@ -376,9 +395,24 @@ fun getSpiderMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Axi
     val startVisited = setOf(fromHex.key())
     spiderDFS(fromHex, 0, startVisited)
 
+    // Filter: final destinations must be empty and touch the swarm
+    val validResults = results.filter { hex ->
+        if (isOccupied(board, hex)) return@filter false
+        // Must touch at least one piece in the swarm (excluding the starting position)
+        hex.getNeighbors().any { n ->
+            val nKey = n.key()
+            if (nKey == fromHex.key()) {
+                // Check if there's still a piece at fromHex after moving
+                board[fromHex.key()]?.isNotEmpty() == true
+            } else {
+                isOccupied(board, n)
+            }
+        }
+    }
+
     val uniqueKeys = mutableSetOf<String>()
     val uniqueResults = mutableListOf<AxialHex>()
-    for (hex in results) {
+    for (hex in validResults) {
         if (uniqueKeys.add(hex.key())) {
             uniqueResults.add(hex)
         }
@@ -432,12 +466,30 @@ fun getSoldierAntMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List
     val visited = mutableSetOf(fromHex.key())
     val queue = mutableListOf(fromHex)
 
+    // Special slide check for ant: gate check only, no occupancy requirement
+    fun canAntSlide(current: AxialHex, next: AxialHex): Boolean {
+        val common = getCommonNeighbors(current, next)
+        if (common.size != 2) return false
+
+        val h1 = getStackHeight(board, common[0])
+        val h2 = getStackHeight(board, common[1])
+
+        // Gate check at ground level
+        if (h1 > 0 && h2 > 0) {
+            return false
+        }
+
+        return true
+    }
+
     while (queue.isNotEmpty()) {
         val current = queue.removeAt(0)
         for (next in current.getNeighbors()) {
             val nextKey = next.key()
             if (!visited.contains(nextKey)) {
-                if (isValidGroundSlide(board, current, next)) {
+                // Ant can move to any adjacent hex that passes the gate check
+                // (doesn't need to be empty for intermediate steps)
+                if (canAntSlide(current, next)) {
                     visited.add(nextKey)
                     queue.add(next)
                 }
@@ -447,7 +499,24 @@ fun getSoldierAntMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List
 
     visited.remove(fromHex.key())
 
-    return visited.map { parseKey(it) }
+    // Filter: destinations must be empty and touch the swarm
+    val validKeys = visited.filter { key ->
+        val hex = parseKey(key)
+        // Must be empty
+        if (isOccupied(board, hex)) return@filter false
+        // Must touch at least one piece in the swarm (excluding the starting position)
+        hex.getNeighbors().any { n ->
+            val nKey = n.key()
+            if (nKey == fromHex.key()) {
+                // Check if there's still a piece at fromHex after moving
+                board[fromHex.key()]?.isNotEmpty() == true
+            } else {
+                isOccupied(board, n)
+            }
+        }
+    }
+
+    return validKeys.map { parseKey(it) }
 }
 
 fun getLadybugMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<AxialHex> {
