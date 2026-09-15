@@ -426,4 +426,240 @@ class BugzEngineTest {
 
         assertFalse("Beetle on top should NOT step down through blocked ground gate", moves.contains(AxialHex(1, 0)))
     }
+
+    // --- ant movement (freedom to move / gate rule) ---
+
+    @Test
+    fun `ant can slide through an open gate to an empty hex`() {
+        // P1 ant at (0,0), P2 blocks 4 of the 6 neighbours.
+        // Empty hexes at (1,0) and (0,1). Gate for (0,0)->(0,1) is (-1,1) and (1,0);
+        // (1,0) is empty so the gate is open and the ant CAN slide to (0,1).
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_ant", BugType.SOLDIER_ANT, Player.ONE))
+        board[AxialHex(1, -1).key()] = mutableListOf(Piece("p2_a", BugType.SPIDER, Player.TWO))
+        board[AxialHex(0, -1).key()] = mutableListOf(Piece("p2_b", BugType.SPIDER, Player.TWO))
+        board[AxialHex(-1, 0).key()] = mutableListOf(Piece("p2_c", BugType.SPIDER, Player.TWO))
+        board[AxialHex(-1, 1).key()] = mutableListOf(Piece("p2_d", BugType.SPIDER, Player.TWO))
+
+        val moves = getSoldierAntMoves(board, AxialHex(0, 0))
+
+        assertTrue("Ant should slide through the open gate to (0,1)", moves.contains(AxialHex(0, 1)))
+    }
+
+    @Test
+    fun `ant trapped inside a ring of pieces has no moves`() {
+        // P1 ant at (0,0) surrounded by P2 pieces on 5 of its 6 neighbours.
+        // The only empty neighbour (1,-1) sits behind a closed gate (its gate
+        // hexes (1,0) and (0,-1) are both occupied), so the ant cannot
+        // physically slide out and has no legal moves.
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_ant", BugType.SOLDIER_ANT, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p2_a", BugType.SPIDER, Player.TWO))
+        board[AxialHex(0, 1).key()] = mutableListOf(Piece("p2_b", BugType.SPIDER, Player.TWO))
+        board[AxialHex(-1, 1).key()] = mutableListOf(Piece("p2_c", BugType.SPIDER, Player.TWO))
+        board[AxialHex(-1, 0).key()] = mutableListOf(Piece("p2_d", BugType.SPIDER, Player.TWO))
+        board[AxialHex(0, -1).key()] = mutableListOf(Piece("p2_e", BugType.SPIDER, Player.TWO))
+
+        val moves = getSoldierAntMoves(board, AxialHex(0, 0))
+
+        assertTrue("Ant surrounded by a closed ring must have no moves", moves.isEmpty())
+    }
+
+    @Test
+    fun `ant can travel around the outside of the hive`() {
+        // P1 ant at (0,0) with a single P2 piece at (1,0).
+        // The ant may orbit the hive: (0,1), (1,1) and (2,0) are all reachable
+        // around the outside, while hexes that would isolate it are not.
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_ant", BugType.SOLDIER_ANT, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p2_a", BugType.SPIDER, Player.TWO))
+
+        val moves = getSoldierAntMoves(board, AxialHex(0, 0))
+
+        assertTrue("Ant should reach (0,1)", moves.contains(AxialHex(0, 1)))
+        assertTrue("Ant should reach (1,1) via the open gate left behind", moves.contains(AxialHex(1, 1)))
+        assertTrue("Ant should reach (2,0) around the piece", moves.contains(AxialHex(2, 0)))
+        assertFalse("Ant must not leave the hive to (-1,0)", moves.contains(AxialHex(-1, 0)))
+    }
+
+    // --- spider movement (exactly 3 steps, freedom to move) ---
+
+    @Test
+    fun `spider moves exactly three hexes`() {
+        // P1 spider at (0,0), single P2 piece at (1,0).
+        // (0,0) -> (0,1) -> (1,1) -> (2,0) is a legal three-step slide.
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_spider", BugType.SPIDER, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p2_a", BugType.SPIDER, Player.TWO))
+
+        val moves = getSpiderMoves(board, AxialHex(0, 0))
+
+        assertTrue("Spider should land on (2,0) after exactly three steps", moves.contains(AxialHex(2, 0)))
+        assertFalse("Spider must not land a single step away at (0,1)", moves.contains(AxialHex(0, 1)))
+        assertFalse("Spider must not land two steps away at (1,1)", moves.contains(AxialHex(1, 1)))
+    }
+
+    @Test
+    fun `spider cannot walk through an occupied hex`() {
+        // P1 spider at (0,0). P2 pieces at (1,0) and (0,-1).
+        // (2,-1) and (1,-2) are only reachable in three steps by walking
+        // THROUGH the occupied hexes — illegal under freedom-to-move.
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_spider", BugType.SPIDER, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p2_a", BugType.SPIDER, Player.TWO))
+        board[AxialHex(0, -1).key()] = mutableListOf(Piece("p2_b", BugType.SPIDER, Player.TWO))
+
+        val moves = getSpiderMoves(board, AxialHex(0, 0))
+
+        assertFalse("Spider must NOT walk through (1,0) to reach (2,-1)", moves.contains(AxialHex(2, -1)))
+        assertFalse("Spider must NOT walk through (0,-1) to reach (1,-2)", moves.contains(AxialHex(1, -2)))
+    }
+
+    // --- beetle movement (climbing + gate rule) ---
+
+    @Test
+    fun `beetle climbs onto an adjacent piece`() {
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_q", BugType.QUEEN, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p1_beetle", BugType.BEETLE, Player.ONE))
+
+        val moves = getBeetleMoves(board, AxialHex(1, 0))
+
+        assertTrue("Beetle should climb onto the queen at (0,0)", moves.contains(AxialHex(0, 0)))
+    }
+
+    @Test
+    fun `beetle on top can step down onto an empty ground hex`() {
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(
+            Piece("p1_q", BugType.QUEEN, Player.ONE),
+            Piece("p2_beetle", BugType.BEETLE, Player.TWO),
+        )
+
+        val moves = getBeetleMoves(board, AxialHex(0, 0))
+
+        assertTrue("Beetle on top should step down to (1,0)", moves.contains(AxialHex(1, 0)))
+    }
+
+    @Test
+    fun `beetle cannot climb through a closed gate`() {
+        // Gate hexes for climbing from (1,0) onto (0,0) are (0,1) and (1,-1);
+        // both occupied so the beetle cannot squeeze through.
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_q", BugType.QUEEN, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p1_beetle", BugType.BEETLE, Player.ONE))
+        board[AxialHex(0, 1).key()] = mutableListOf(Piece("p2_a", BugType.SPIDER, Player.TWO))
+        board[AxialHex(1, -1).key()] = mutableListOf(Piece("p2_b", BugType.SPIDER, Player.TWO))
+
+        val moves = getBeetleMoves(board, AxialHex(1, 0))
+
+        assertFalse("Beetle must NOT climb onto (0,0) through a closed gate", moves.contains(AxialHex(0, 0)))
+    }
+
+    // --- grasshopper movement ---
+
+    @Test
+    fun `grasshopper jumps over a line of pieces to the first empty hex`() {
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_gh", BugType.GRASSHOPPER, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p2_a", BugType.SPIDER, Player.TWO))
+        board[AxialHex(2, 0).key()] = mutableListOf(Piece("p2_b", BugType.SPIDER, Player.TWO))
+
+        val moves = getGrasshopperMoves(board, AxialHex(0, 0))
+
+        assertTrue("Grasshopper should jump to (3,0)", moves.contains(AxialHex(3, 0)))
+        assertFalse("Grasshopper must not land on an occupied hex (1,0)", moves.contains(AxialHex(1, 0)))
+        assertFalse("Grasshopper must not land on an occupied hex (2,0)", moves.contains(AxialHex(2, 0)))
+    }
+
+    @Test
+    fun `grasshopper cannot jump with no pieces in a row`() {
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_gh", BugType.GRASSHOPPER, Player.ONE))
+
+        val moves = getGrasshopperMoves(board, AxialHex(0, 0))
+
+        assertTrue(moves.isEmpty())
+    }
+
+    // --- mosquito movement (copies adjacent pieces) ---
+
+    @Test
+    fun `mosquito copies an adjacent grasshopper and jumps`() {
+        val mosquito = Piece("p1_m", BugType.MOSQUITO, Player.ONE)
+        val board = mapOf(
+            "0,0" to listOf(mosquito),
+            "1,0" to listOf(Piece("p1_gh", BugType.GRASSHOPPER, Player.ONE)),
+            "2,0" to listOf(Piece("p2_a", BugType.SPIDER, Player.TWO)),
+            "3,0" to listOf(Piece("p2_b", BugType.SPIDER, Player.TWO)),
+        )
+
+        val effective = getEffectiveBugTypes(board, AxialHex(0, 0), mosquito)
+        assertTrue(effective.contains(BugType.GRASSHOPPER))
+
+        val moves = effective.flatMap { getMovesForBugType(board, AxialHex(0, 0), it) }
+        assertTrue("Mosquito copying grasshopper should jump to (4,0)", moves.contains(AxialHex(4, 0)))
+    }
+
+    @Test
+    fun `mosquito with no adjacent pieces has no movement`() {
+        val mosquito = Piece("p1_m", BugType.MOSQUITO, Player.ONE)
+        val board = mapOf("0,0" to listOf(mosquito))
+
+        assertTrue(getEffectiveBugTypes(board, AxialHex(0, 0), mosquito).isEmpty())
+    }
+
+    @Test
+    fun `mosquito adjacent only to another mosquito has no movement`() {
+        val mosquito = Piece("p1_m", BugType.MOSQUITO, Player.ONE)
+        val board = mapOf(
+            "0,0" to listOf(mosquito),
+            "1,0" to listOf(Piece("p2_m", BugType.MOSQUITO, Player.TWO)),
+        )
+
+        assertTrue(getEffectiveBugTypes(board, AxialHex(0, 0), mosquito).isEmpty())
+    }
+
+    // --- ladybug movement (two steps on top, one step down) ---
+
+    @Test
+    fun `ladybug moves two steps on top then one step down`() {
+        // (0,0) -> on top of (1,0) -> on top of (2,0) -> down to (3,0)
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_ladybug", BugType.LADYBUG, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p2_a", BugType.SPIDER, Player.TWO))
+        board[AxialHex(2, 0).key()] = mutableListOf(Piece("p2_b", BugType.SPIDER, Player.TWO))
+
+        val moves = getLadybugMoves(board, AxialHex(0, 0))
+
+        assertTrue("Ladybug should land at (3,0)", moves.contains(AxialHex(3, 0)))
+        assertFalse("Ladybug must not land on the occupied (1,0)", moves.contains(AxialHex(1, 0)))
+        assertFalse("Ladybug must not land on the occupied (2,0)", moves.contains(AxialHex(2, 0)))
+    }
+
+    // --- pillbug movement (queen-like move + special ability) ---
+
+    @Test
+    fun `pillbug moves one hex like the queen`() {
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_pillbug", BugType.PILLBUG, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p2_a", BugType.SPIDER, Player.TWO))
+
+        val moves = getPillbugMoves(board, AxialHex(0, 0))
+
+        assertTrue("Pillbug should slide to (0,1)", moves.contains(AxialHex(0, 1)))
+    }
+
+    @Test
+    fun `pillbug special moves an adjacent friendly piece to an empty hex`() {
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_pillbug", BugType.PILLBUG, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p1_friend", BugType.SPIDER, Player.ONE))
+        board[AxialHex(-1, 1).key()] = mutableListOf(Piece("p1_queen", BugType.QUEEN, Player.ONE))
+
+        val options = getPillbugSpecialTargets(board, AxialHex(0, 0), Player.ONE, null)
+        val friendOption = options.first { it.targetHex == AxialHex(1, 0) }
+
+        assertTrue("Pillbug should be able to move the friend to (0,1)", friendOption.destinationHexes.contains(AxialHex(0, 1)))
+    }
 }
