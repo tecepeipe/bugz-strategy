@@ -243,12 +243,7 @@ fun canSlide(
 
     val maxAllowedHeight = maxOf(atHeight, getStackHeight(board, fromHex) - 1, getStackHeight(board, toHex))
 
-    // A gate hex only blocks if it's occupied AND tall enough to block
-    // Empty hexes (height 0) never block movement
-    val h1Blocks = h1 > 0 && h1 >= maxAllowedHeight
-    val h2Blocks = h2 > 0 && h2 >= maxAllowedHeight
-
-    if (h1Blocks && h2Blocks) {
+    if (h1 >= maxAllowedHeight && h2 >= maxAllowedHeight) {
         return false
     }
     return true

@@ -34,7 +34,7 @@ jobs:
         uses: android-actions/setup-android@v4
         with:
           log-accepted-android-sdk-licenses: true
-          packages: 'platform-tools'
+          disable-spdx-license-validation: true
 
       - name: Generate Gradle Wrapper
         run: |
