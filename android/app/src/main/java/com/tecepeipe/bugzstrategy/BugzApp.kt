@@ -102,6 +102,7 @@ data class AxialHex(val q: Int, val r: Int) {
         AxialHex(q + 1, r), AxialHex(q + 1, r - 1), AxialHex(q, r - 1),
         AxialHex(q - 1, r), AxialHex(q - 1, r + 1), AxialHex(q, r + 1)
     )
+    fun neighbors(): List<AxialHex> = getNeighbors()
 }
 
 enum class GameMode { PASS_AND_PLAY, AI, TUTORIAL }
@@ -1347,6 +1348,74 @@ fun simulateAction(
     }
 
     return Triple(nextBoard, nextAIReserve, nextHumanReserve)
+}
+
+fun computeTutorialMove(
+    board: Map<String, List<Piece>>,
+    aiPlayer: Player,
+    aiReserve: List<Piece>,
+    humanReserve: List<Piece>,
+    turnCountAI: Int,
+    turnCountHuman: Int,
+    lastMovedPieceId: String?,
+    expansions: ExpansionsConfig
+): MoveAction? {
+    // Tutorial AI makes very simple, predictable moves to demonstrate gameplay
+    val legalActions = getPlayerAllLegalActions(
+        board, aiPlayer, aiReserve, turnCountAI, lastMovedPieceId, expansions
+    )
+
+    if (legalActions.isEmpty()) return null
+
+    // Priority 1: Always place queen on turn 1 if not placed yet
+    if (!isQueenPlaced(board, aiPlayer) && turnCountAI == 0) {
+        val queenActions = legalActions.filter { it.bugType == BugType.QUEEN }
+        if (queenActions.isNotEmpty()) {
+            // Choose the first valid queen placement (predictable)
+            return queenActions[0]
+        }
+    }
+
+    // Priority 2: Place queen by turn 4 if not yet placed
+    if (!isQueenPlaced(board, aiPlayer) && turnCountAI >= 3) {
+        val queenActions = legalActions.filter { it.bugType == BugType.QUEEN }
+        if (queenActions.isNotEmpty()) {
+            return queenActions[0]
+        }
+    }
+
+    // Priority 3: Simple defensive moves - prefer placing pieces adjacent to own pieces
+    if (legalActions.any { it.type == MoveAction.ActionType.PLACE }) {
+        val placeActions = legalActions.filter { it.type == MoveAction.ActionType.PLACE }
+        
+        // Try to find a placement that connects to our own pieces
+        for (action in placeActions) {
+            val neighbors = action.toHex.neighbors()
+            var touchesOwnPiece = false
+            for (neighbor in neighbors) {
+                val stack = board[neighbor.key()]
+                if (stack != null && stack.isNotEmpty() && stack.last().player == aiPlayer) {
+                    touchesOwnPiece = true
+                    break
+                }
+            }
+            if (touchesOwnPiece) {
+                return action
+            }
+        }
+        
+        // If no connecting placement found, just pick first placement
+        return placeActions[0]
+    }
+
+    // Priority 4: For moves, prefer simple slides that maintain hive connectivity
+    val moveActions = legalActions.filter { it.type == MoveAction.ActionType.MOVE }
+    if (moveActions.isNotEmpty()) {
+        return moveActions[0]
+    }
+
+    // Fallback: any legal action
+    return legalActions[0]
 }
 
 // ============================================================================
