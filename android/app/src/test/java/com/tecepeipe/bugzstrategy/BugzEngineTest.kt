@@ -691,4 +691,50 @@ class BugzEngineTest {
 
         assertTrue("Pillbug should be able to move the friend to (0,1)", friendOption.destinationHexes.contains(AxialHex(0, 1)))
     }
+
+    // --- tutorial step machine ---
+
+    @Test
+    fun `tutorial steps advance through the full sequence`() {
+        val order = mutableListOf<TutorialStep>()
+        var step = TutorialStep.WELCOME
+        repeat(12) {
+            order.add(step)
+            step = nextTutorialStep(step)
+        }
+
+        assertEquals(
+            listOf(
+                TutorialStep.WELCOME, TutorialStep.PLACE_QUEEN, TutorialStep.OPP_QUEEN,
+                TutorialStep.PLACE_SPIDER, TutorialStep.OPP_SPIDER, TutorialStep.PLACE_BEETLE,
+                TutorialStep.OPP_BEETLE, TutorialStep.PLACE_GRASSHOPPER, TutorialStep.OPP_GRASSHOPPER,
+                TutorialStep.MOVE_EXAMPLE, TutorialStep.COMPLETE, TutorialStep.COMPLETE,
+            ),
+            order,
+        )
+    }
+
+    @Test
+    fun `tutorial AI places its queen on its first turn`() {
+        val engine = HiveEngine()
+        engine.initNewGame(ExpansionsConfig(mosquito = false, ladybug = false, pillbug = false))
+
+        // P1 places its queen first.
+        val p1Queen = engine.p1Reserve.first { it.type == BugType.QUEEN }
+        engine.executeMove(
+            MoveAction(MoveAction.ActionType.PLACE, p1Queen.id, BugType.QUEEN, Player.ONE, toHex = AxialHex(0, 0)),
+        )
+
+        // P2 (AI) first turn: turnCountP2 is 1, queen not placed yet.
+        val action = computeTutorialMove(
+            engine.board, Player.TWO,
+            engine.p2Reserve, engine.p1Reserve,
+            engine.turnCountFor(Player.TWO), engine.turnCountFor(Player.ONE),
+            engine.lastMovedPieceId, engine.expansions,
+        )
+
+        assertEquals(MoveAction.ActionType.PLACE, action?.type)
+        assertEquals(BugType.QUEEN, action?.bugType)
+        assertEquals(Player.TWO, action?.player)
+    }
 }

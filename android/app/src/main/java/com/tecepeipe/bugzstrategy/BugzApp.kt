@@ -110,6 +110,68 @@ data class AxialHex(val q: Int, val r: Int) {
 enum class GameMode { PASS_AND_PLAY, AI, TUTORIAL }
 enum class AIDifficulty { EASY, MEDIUM, HARD }
 
+enum class TutorialStep {
+    WELCOME,
+    PLACE_QUEEN,
+    OPP_QUEEN,
+    PLACE_SPIDER,
+    OPP_SPIDER,
+    PLACE_BEETLE,
+    OPP_BEETLE,
+    PLACE_GRASSHOPPER,
+    OPP_GRASSHOPPER,
+    MOVE_EXAMPLE,
+    COMPLETE,
+}
+
+fun nextTutorialStep(step: TutorialStep): TutorialStep = when (step) {
+    TutorialStep.WELCOME -> TutorialStep.PLACE_QUEEN
+    TutorialStep.PLACE_QUEEN -> TutorialStep.OPP_QUEEN
+    TutorialStep.OPP_QUEEN -> TutorialStep.PLACE_SPIDER
+    TutorialStep.PLACE_SPIDER -> TutorialStep.OPP_SPIDER
+    TutorialStep.OPP_SPIDER -> TutorialStep.PLACE_BEETLE
+    TutorialStep.PLACE_BEETLE -> TutorialStep.OPP_BEETLE
+    TutorialStep.OPP_BEETLE -> TutorialStep.PLACE_GRASSHOPPER
+    TutorialStep.PLACE_GRASSHOPPER -> TutorialStep.OPP_GRASSHOPPER
+    TutorialStep.OPP_GRASSHOPPER -> TutorialStep.MOVE_EXAMPLE
+    TutorialStep.MOVE_EXAMPLE -> TutorialStep.COMPLETE
+    TutorialStep.COMPLETE -> TutorialStep.COMPLETE
+}
+
+fun tutorialStepNumber(step: TutorialStep): Int = when (step) {
+    TutorialStep.PLACE_QUEEN -> 1
+    TutorialStep.PLACE_SPIDER -> 2
+    TutorialStep.PLACE_BEETLE -> 3
+    TutorialStep.PLACE_GRASSHOPPER -> 4
+    TutorialStep.MOVE_EXAMPLE -> 5
+    else -> 0
+}
+
+fun tutorialMessage(step: TutorialStep): String = when (step) {
+    TutorialStep.WELCOME ->
+        "Welcome! This tutorial will teach you how to play Bugz. You'll learn placement, movement, and winning. Tap Next to begin!"
+    TutorialStep.PLACE_QUEEN ->
+        "Tap the 🐝 Queen Bee in your reserve below, then tap any hex on the board to place her."
+    TutorialStep.OPP_QUEEN ->
+        "⏳ Opponent is placing their Queen Bee…"
+    TutorialStep.PLACE_SPIDER ->
+        "Tap the 🕷️ Spider in your reserve, then tap a highlighted hex to place it. Spiders move exactly 3 spaces around the edge."
+    TutorialStep.OPP_SPIDER ->
+        "⏳ Opponent is placing a Spider…"
+    TutorialStep.PLACE_BEETLE ->
+        "Tap the 🪲 Beetle in your reserve, then tap a highlighted hex to place it. Beetles move 1 space and can climb on top of other pieces!"
+    TutorialStep.OPP_BEETLE ->
+        "⏳ Opponent is placing a Beetle…"
+    TutorialStep.PLACE_GRASSHOPPER ->
+        "Tap the 🦗 Grasshopper in your reserve, then tap a highlighted hex to place it. Grasshoppers jump in a straight line over pieces!"
+    TutorialStep.OPP_GRASSHOPPER ->
+        "⏳ Opponent is placing a Grasshopper…"
+    TutorialStep.MOVE_EXAMPLE ->
+        "Now try moving! Tap one of your pieces on the board, then tap a highlighted hex to move it."
+    TutorialStep.COMPLETE ->
+        "🎉 Tutorial complete! You've learned the basics — placement, movement, and the goal. Keep playing to discover more strategies. Have fun!"
+}
+
 data class ExpansionsConfig(
     val mosquito: Boolean = true,
     val ladybug: Boolean = true,
@@ -1402,7 +1464,7 @@ fun computeTutorialMove(
     if (legalActions.isEmpty()) return null
 
     // Priority 1: Always place queen on turn 1 if not placed yet
-    if (!isQueenPlaced(board, aiPlayer) && turnCountAI == 0) {
+    if (!isQueenPlaced(board, aiPlayer) && turnCountAI == 1) {
         val queenActions = legalActions.filter { it.bugType == BugType.QUEEN }
         if (queenActions.isNotEmpty()) {
             // Choose the first valid queen placement (predictable)
@@ -1482,6 +1544,7 @@ fun HiveApp() {
     var isAITurn by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }
     var undoStack by remember { mutableStateOf<List<HiveEngine.EngineSnapshot>>(emptyList()) }
+    var tutorialStep by remember { mutableStateOf(TutorialStep.COMPLETE) }
 
     val aiPlayer: Player = if (settings.humanColor == Player.ONE) Player.TWO else Player.ONE
 
@@ -1527,7 +1590,9 @@ fun HiveApp() {
             val humanPlayer: Player = if (aiPlayer == Player.ONE) Player.TWO else Player.ONE
 
             // In tutorial mode, make simple predictable moves for teaching
-            val action = if (settings.mode == GameMode.TUTORIAL) {
+            // (once the tutorial completes, revert to the regular AI).
+            val tutorialActive = settings.mode == GameMode.TUTORIAL && tutorialStep != TutorialStep.COMPLETE
+            val action = if (tutorialActive) {
                 computeTutorialMove(
                     engine.board,
                     aiPlayer,
@@ -1589,6 +1654,11 @@ fun HiveApp() {
         lastMovedHex = action.toHex
         clearSelection()
 
+        // Advance the tutorial after every move (player or opponent).
+        if (settings.tutorialMode && tutorialStep != TutorialStep.COMPLETE) {
+            tutorialStep = nextTutorialStep(tutorialStep)
+        }
+
         val status = engine.checkGameStatus()
         if (status.isGameOver) {
             gameOver = status.winner
@@ -1607,8 +1677,14 @@ fun HiveApp() {
     executeMoveImpl = ::executeMove
 
     fun startNewGame(newSettings: GameSettings) {
-        engine.initNewGame(newSettings.expansions)
-        settings = newSettings
+        // Tutorial uses the base pieces only (no expansions).
+        val effectiveExpansions = if (newSettings.tutorialMode) {
+            ExpansionsConfig(mosquito = false, ladybug = false, pillbug = false)
+        } else {
+            newSettings.expansions
+        }
+        engine.initNewGame(effectiveExpansions)
+        settings = newSettings.copy(expansions = effectiveExpansions)
         gameOver = null
         isDraw = false
         clearSelection()
@@ -1616,9 +1692,15 @@ fun HiveApp() {
         toast = null
         isAITurn = false
         undoStack = emptyList()
+        tutorialStep = if (newSettings.tutorialMode) TutorialStep.WELCOME else TutorialStep.COMPLETE
         isSetupOpen = false
         bump()
         requestAIMove()
+    }
+
+    fun endTutorial() {
+        tutorialStep = TutorialStep.COMPLETE
+        settings = settings.copy(tutorialMode = false)
     }
 
     fun handleUndo() {
@@ -1885,6 +1967,20 @@ fun HiveApp() {
                                 .align(Alignment.TopEnd)
                                 .padding(12.dp),
                         )
+
+                        // Tutorial instruction banner
+                        if (settings.tutorialMode &&
+                            tutorialStep != TutorialStep.COMPLETE &&
+                            tutorialStep != TutorialStep.WELCOME &&
+                            gameOver == null &&
+                            !isSetupOpen
+                        ) {
+                            TutorialBanner(
+                                step = tutorialStep,
+                                onSkip = { endTutorial() },
+                                modifier = Modifier.align(Alignment.TopCenter),
+                            )
+                        }
                     }
 
                     // Reserve Bar at Bottom
@@ -1924,6 +2020,43 @@ fun HiveApp() {
                             gameOver = null
                             isDraw = false
                             isSetupOpen = true
+                        },
+                    )
+                }
+
+                // Tutorial welcome dialog
+                if (settings.tutorialMode && tutorialStep == TutorialStep.WELCOME && !isSetupOpen) {
+                    AlertDialog(
+                        onDismissRequest = { endTutorial() },
+                        title = { Text("🎓 Tutorial", fontWeight = FontWeight.Bold) },
+                        text = { Text(tutorialMessage(TutorialStep.WELCOME)) },
+                        confirmButton = {
+                            Button(onClick = { tutorialStep = nextTutorialStep(TutorialStep.WELCOME) }) {
+                                Text("Next")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { endTutorial() }) { Text("Skip Tutorial") }
+                        },
+                    )
+                }
+
+                // Tutorial completion dialog
+                if (settings.tutorialMode &&
+                    tutorialStep == TutorialStep.COMPLETE &&
+                    engine.board.isNotEmpty() &&
+                    gameOver == null &&
+                    !isSetupOpen
+                ) {
+                    AlertDialog(
+                        onDismissRequest = { endTutorial() },
+                        title = { Text("🎉 Tutorial Complete", fontWeight = FontWeight.Bold) },
+                        text = { Text(tutorialMessage(TutorialStep.COMPLETE)) },
+                        confirmButton = {
+                            Button(onClick = {
+                                endTutorial()
+                                isSetupOpen = true
+                            }) { Text("Got It — New Game") }
                         },
                     )
                 }
@@ -2274,6 +2407,34 @@ fun MoveLogOverlay(history: List<MoveLogEntry>, modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+fun TutorialBanner(step: TutorialStep, onSkip: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = RoundedCornerShape(14.dp),
+        modifier = modifier
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .fillMaxWidth(),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+        ) {
+            val num = tutorialStepNumber(step)
+            Text(
+                text = (if (num > 0) "Step $num: " else "") + tutorialMessage(step),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onSkip) {
+                Text("Skip", fontSize = 12.sp)
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SetupModal(
@@ -2319,12 +2480,17 @@ fun SetupModal(
                         modifier = Modifier.weight(1f),
                     )
                 }
-                FilterChip(
-                    selected = mode == GameMode.TUTORIAL,
-                    onClick = { mode = GameMode.TUTORIAL },
-                    label = { Text("🎓 Tutorial") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = mode == GameMode.TUTORIAL,
+                        onClick = { mode = GameMode.TUTORIAL },
+                        label = { Text("🎓 Tutorial") },
+                        modifier = Modifier.weight(1f),
+                    )
+                    // Reserve the other half so the Tutorial chip matches the
+                    // size of the two mode buttons above it.
+                    Spacer(modifier = Modifier.weight(1f))
+                }
 
                 if (mode == GameMode.AI) {
                     Text("AI Difficulty:", fontWeight = FontWeight.SemiBold)
@@ -2358,26 +2524,28 @@ fun SetupModal(
                     }
                 }
 
-                Text("Expansions:", fontWeight = FontWeight.SemiBold)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = mosquito,
-                        onClick = { mosquito = !mosquito },
-                        label = { Text("🦟 Mosquito") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    FilterChip(
-                        selected = ladybug,
-                        onClick = { ladybug = !ladybug },
-                        label = { Text("🐞 Ladybug") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    FilterChip(
-                        selected = pillbug,
-                        onClick = { pillbug = !pillbug },
-                        label = { Text("💊 Pillbug") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                if (mode != GameMode.TUTORIAL) {
+                    Text("Expansions:", fontWeight = FontWeight.SemiBold)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = mosquito,
+                            onClick = { mosquito = !mosquito },
+                            label = { Text("🦟 Mosquito") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        FilterChip(
+                            selected = ladybug,
+                            onClick = { ladybug = !ladybug },
+                            label = { Text("🐞 Ladybug") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        FilterChip(
+                            selected = pillbug,
+                            onClick = { pillbug = !pillbug },
+                            label = { Text("💊 Pillbug") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
         },
