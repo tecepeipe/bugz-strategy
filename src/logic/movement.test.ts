@@ -31,6 +31,14 @@ interface MovementSuite {
     lastMovedPieceId?: string | null,
     expansions?: ExpansionsConfig
   ): AxialHex[];
+  getValidPlacements(board: BoardState, player: Player, turnCountP: number): AxialHex[];
+  checkGameStatus(board: BoardState): {
+    isGameOver: boolean;
+    winner: Player | null;
+    isDraw: boolean;
+    p1QueenSurroundedCount: number;
+    p2QueenSurroundedCount: number;
+  };
 }
 
 const suites: Array<[string, MovementSuite]> = [
@@ -257,6 +265,20 @@ function runSuite(name: string, rules: MovementSuite): void {
     assert.ok(!has(moves, 0, 0), `beetle must NOT climb onto (0,0) through a closed gate, got [${keys(moves)}]`);
   });
 
+  test(`${name}: beetle on top cannot step down through a blocked ground gate`, () => {
+    // A beetle on top of a stack at (0,0); both ground gate hexes for (1,0)
+    // are occupied, so it cannot step down there.
+    const b = makeBoard();
+    setHex(b, 0, 0, [piece('p1_q', 'QUEEN', 1), piece('p2_beetle', 'BEETLE', 2)]);
+    setHex(b, 2, -1, [piece('p2_q', 'QUEEN', 2)]);
+    setHex(b, 1, -1, [piece('p1_a', 'SPIDER', 1)]);
+    setHex(b, 0, 1, [piece('p1_b', 'SPIDER', 1)]);
+
+    const moves = rules.getBeetleMoves(b, hex(0, 0));
+
+    assert.ok(!has(moves, 1, 0), `beetle on top must NOT step down through a blocked ground gate, got [${keys(moves)}]`);
+  });
+
   // --- grasshopper movement ---
 
   test(`${name}: grasshopper jumps over a line of pieces to the first empty hex`, () => {
@@ -356,6 +378,74 @@ function runSuite(name: string, rules: MovementSuite): void {
       friendOption!.destinationHexes.some(d => d.q === 0 && d.r === 1),
       `pillbug should be able to move the friend to (0,1), got [${keys(friendOption!.destinationHexes)}]`
     );
+  });
+
+  test(`${name}: pillbug that just moved cannot use its special ability`, () => {
+    const b = makeBoard();
+    setHex(b, 0, 0, [piece('p1_pillbug', 'PILLBUG', 1)]);
+    setHex(b, 1, 0, [piece('p1_friend', 'SPIDER', 1)]);
+    setHex(b, -1, 1, [piece('p1_queen', 'QUEEN', 1)]);
+
+    const options = rules.getPillbugSpecialTargets(b, hex(0, 0), 1, 'p1_pillbug');
+
+    assert.deepEqual(options, [], 'a just-moved Pillbug must not use its ability');
+  });
+
+  test(`${name}: pillbug special cannot lift through a stacked gate destination`, () => {
+    // Gate hex for lifting the friend from (1,0) to (0,-1) is (1,-1); a stack
+    // of height 2 there blocks that destination.
+    const b = makeBoard();
+    setHex(b, 0, 0, [piece('p1_pillbug', 'PILLBUG', 1)]);
+    setHex(b, 1, 0, [piece('p1_friend', 'SPIDER', 1)]);
+    setHex(b, 0, 1, [piece('p1_queen', 'QUEEN', 1)]);
+    setHex(b, 1, -1, [piece('p2_q', 'QUEEN', 2), piece('p2_beetle', 'BEETLE', 2)]);
+
+    const options = rules.getPillbugSpecialTargets(b, hex(0, 0), 1, null);
+    const friendOption = options.find(o => o.targetHex.q === 1 && o.targetHex.r === 0);
+    assert.ok(friendOption, 'pillbug should be able to target the friend at (1,0)');
+    assert.ok(
+      !friendOption!.destinationHexes.some(d => d.q === 0 && d.r === -1),
+      `pillbug must NOT lift the friend through a stacked gate to (0,-1), got [${keys(friendOption!.destinationHexes)}]`
+    );
+  });
+
+  // --- placement rules ---
+
+  test(`${name}: first placement is at the origin`, () => {
+    const placements = rules.getValidPlacements(makeBoard(), 1, 1);
+    assert.deepEqual(placements.map(h => hexKey(h.q, h.r)), ['0,0']);
+  });
+
+  test(`${name}: second placement touches the first piece`, () => {
+    const b = makeBoard();
+    setHex(b, 0, 0, [piece('p1_q', 'QUEEN', 1)]);
+    const placements = rules.getValidPlacements(b, 2, 1);
+    assert.equal(placements.length, 6, 'the second placement should touch the first piece');
+  });
+
+  test(`${name}: placements cannot touch enemy pieces`, () => {
+    const b = makeBoard();
+    setHex(b, 0, 0, [piece('p1_q', 'QUEEN', 1)]);
+    setHex(b, 1, 0, [piece('p2_q', 'QUEEN', 2)]);
+    const placements = rules.getValidPlacements(b, 1, 2);
+    assert.ok(
+      !placements.some(h => h.q === 2 && h.r === 0),
+      'a P1 placement adjacent to the P2 queen at (1,0) must not be allowed'
+    );
+  });
+
+  // --- win condition ---
+
+  test(`${name}: queen surrounded on all six sides ends the game`, () => {
+    const b = makeBoard();
+    setHex(b, 0, 0, [piece('p1_q', 'QUEEN', 1)]);
+    for (const n of neighborsOf(hex(0, 0))) {
+      setHex(b, n.q, n.r, [piece('p2_x', 'SPIDER', 2)]);
+    }
+    const status = rules.checkGameStatus(b);
+    assert.equal(status.isGameOver, true);
+    assert.equal(status.winner, 2);
+    assert.equal(status.p1QueenSurroundedCount, 6);
   });
 
   // --- One Hive / freedom-to-move validation ---

@@ -196,6 +196,7 @@ export function isValidGroundSlide(
 
 // --- VALID PLACEMENT RULES ---
 
+// Valid placement hexes: first piece to the origin, second touches the first, later pieces must touch a friendly piece without touching an enemy piece.
 export function getValidPlacements(board: BoardState, player: Player, turnCountP: number): AxialHex[] {
   const occupied = getAllOccupiedHexes(board);
 
@@ -254,6 +255,7 @@ export function getValidPlacements(board: BoardState, player: Player, turnCountP
 /**
  * Calculates valid destination hexes for a piece currently at `fromHex`.
  */
+// All legal destinations for the top piece at fromHex: must be top of stack, its removal must not break the One Hive rule, and every destination must pass the insect's movement rules plus the One Hive connectivity check.
 export function getValidMovesForPiece(
   board: BoardState,
   fromHex: AxialHex,
@@ -313,6 +315,7 @@ export function getValidMovesForPiece(
 /**
  * Get effective movement types for a piece (handles Mosquito copying adjacent abilities).
  */
+// Effective movement types for a piece: a ground Mosquito copies the types of adjacent non-mosquito pieces; on top of a stack it acts as a Beetle.
 export function getEffectiveBugTypes(
   board: BoardState,
   fromHex: AxialHex,
@@ -354,6 +357,7 @@ export function getEffectiveBugTypes(
 /**
  * Movement calculator by bug type.
  */
+// Dispatch to the movement calculator for a concrete bug type (a Mosquito has no fixed movement; its effective type is resolved first).
 export function getMovesForBugType(
   board: BoardState,
   fromHex: AxialHex,
@@ -381,6 +385,7 @@ export function getMovesForBugType(
 }
 
 // 1. Queen Bee: 1 ground slide step along perimeter
+// Queen Bee: moves exactly one hex as a ground slide.
 export function getQueenMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   const neighbors = getAllNeighbors(fromHex);
   return neighbors.filter(to => isValidGroundSlide(board, fromHex, to));
@@ -559,6 +564,7 @@ export function getLadybugMoves(board: BoardState, fromHex: AxialHex): AxialHex[
 }
 
 // 7. Pillbug standard movement (1 ground slide step)
+// Pillbug standard move: slides one hex like the Queen Bee (special lift-and-place is getPillbugSpecialTargets).
 export function getPillbugMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   return getQueenMoves(board, fromHex);
 }
@@ -575,6 +581,7 @@ export interface PillbugTargetOption {
  * Gets valid targets for Pillbug special action.
  * Pillbug can pick up an unstacked adjacent piece (not moved last turn, not breaking hive) and place it in an empty space adjacent to Pillbug.
  */
+// Pillbug special: lift an adjacent unstacked piece to an empty hex adjacent to the Pillbug. A just-moved Pillbug/target is stunned, and a stacked (height 2+) gate hex blocks a destination.
 export function getPillbugSpecialTargets(
   board: BoardState,
   pillbugHex: AxialHex,
@@ -587,6 +594,10 @@ export function getPillbugSpecialTargets(
   // Pillbug must be unstacked (or top piece)
   const stack = board.get(hexKey(pillbugHex.q, pillbugHex.r));
   if (!stack || stack.length === 0) return [];
+
+  // Official rule: a Pillbug that was just moved is "stunned" and cannot use
+  // its special ability on the opponent's immediately following turn.
+  if (stack[stack.length - 1].id === lastMovedPieceId) return [];
 
   // Empty spaces adjacent to Pillbug
   const adjacentHexes = getAllNeighbors(pillbugHex);
@@ -609,13 +620,26 @@ export function getPillbugSpecialTargets(
         // Rule: Removing targetPiece must NOT break the One-Hive rule!
         if (!canRemovePieceWithoutBreakingHive(board, adjHex)) continue;
 
-        // Gate check: Pillbug picking up piece must have clearance to move over Pillbug
-        // (Must be able to pass above Pillbug to empty space)
-        options.push({
-          targetHex: adjHex,
-          piece: targetPiece,
-          destinationHexes: emptyAdjacentHexes,
+        // Beetle-gate rule: the lifted piece passes over the Pillbug to its
+        // destination, so a gate hex (a common neighbour of origin and
+        // destination other than the Pillbug's own hex) with stack height 2+
+        // blocks the passage. The gate is blocked only if ALL such gate hexes
+        // are stacked.
+        const reachableDestinations = emptyAdjacentHexes.filter(destHex => {
+          const gateHexes = getCommonNeighbors(adjHex, destHex).filter(
+            g => !isSameHex(g, pillbugHex)
+          );
+          const gateBlocked = gateHexes.length > 0 && gateHexes.every(g => getStackHeight(board, g) >= 2);
+          return !gateBlocked;
         });
+
+        if (reachableDestinations.length > 0) {
+          options.push({
+            targetHex: adjHex,
+            piece: targetPiece,
+            destinationHexes: reachableDestinations,
+          });
+        }
       }
     }
   }

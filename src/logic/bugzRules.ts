@@ -215,6 +215,7 @@ export function isValidGroundSlide(
 
 // --- VALID PLACEMENT RULES ---
 
+// Valid placement hexes: first piece to the origin, second touches the first, later pieces must touch a friendly piece without touching an enemy piece.
 export function getValidPlacements(board: BoardState, player: Player, turnCountP: number): AxialHex[] {
   const occupied = getAllOccupiedHexes(board);
 
@@ -273,6 +274,7 @@ export function getValidPlacements(board: BoardState, player: Player, turnCountP
 /**
  * Calculates valid destination hexes for a piece currently at `fromHex`.
  */
+// All legal destinations for the top piece at fromHex: must be top of stack, its removal must not break the One Hive rule, and every destination must pass the insect's movement rules plus the One Hive connectivity check.
 export function getValidMovesForPiece(
   board: BoardState,
   fromHex: AxialHex,
@@ -336,6 +338,7 @@ export function getValidMovesForPiece(
 /**
  * Get effective movement types for a piece (handles Mosquito copying adjacent abilities).
  */
+// Effective movement types for a piece: a ground Mosquito copies the types of adjacent non-mosquito pieces; on top of a stack it acts as a Beetle.
 export function getEffectiveBugTypes(
   board: BoardState,
   fromHex: AxialHex,
@@ -377,6 +380,7 @@ export function getEffectiveBugTypes(
 /**
  * Movement calculator by bug type.
  */
+// Dispatch to the movement calculator for a concrete bug type (a Mosquito has no fixed movement; its effective type is resolved first).
 export function getMovesForBugType(
   board: BoardState,
   fromHex: AxialHex,
@@ -404,6 +408,7 @@ export function getMovesForBugType(
 }
 
 // 1. Queen Bee: 1 ground slide step along perimeter
+// Queen Bee: moves exactly one hex as a ground slide.
 export function getQueenMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   const neighbors = getAllNeighbors(fromHex);
   return neighbors.filter(to => isValidGroundSlide(board, fromHex, to));
@@ -580,6 +585,7 @@ export function getLadybugMoves(board: BoardState, fromHex: AxialHex): AxialHex[
 }
 
 // 7. Pillbug standard movement (1 ground slide step)
+// Pillbug standard move: slides one hex like the Queen Bee (special lift-and-place is getPillbugSpecialTargets).
 export function getPillbugMoves(board: BoardState, fromHex: AxialHex): AxialHex[] {
   return getQueenMoves(board, fromHex);
 }
@@ -596,6 +602,7 @@ export interface PillbugTargetOption {
  * Gets valid targets for Pillbug special action.
  * Pillbug can pick up an unstacked adjacent piece (not moved last turn, not breaking swarm) and place it in an empty space adjacent to Pillbug.
  */
+// Pillbug special: lift an adjacent unstacked piece to an empty hex adjacent to the Pillbug. A just-moved Pillbug/target is stunned, and a stacked (height 2+) gate hex blocks a destination.
 export function getPillbugSpecialTargets(
   board: BoardState,
   pillbugHex: AxialHex,

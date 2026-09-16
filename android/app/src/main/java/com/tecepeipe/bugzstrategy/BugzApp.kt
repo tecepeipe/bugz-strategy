@@ -365,6 +365,11 @@ fun isValidGroundSlide(
     return touchesHive
 }
 
+/**
+ * Valid placement hexes for [player]: the first piece goes to the origin, the
+ * second touches the first piece, and later placements must touch a friendly
+ * piece without touching any enemy piece.
+ */
 @Suppress("UNUSED_PARAMETER")
 fun getValidPlacements(
     board: Map<String, List<Piece>>,
@@ -443,6 +448,9 @@ fun getEffectiveBugTypes(
     return copiedTypes.toList()
 }
 
+/**
+ * Queen Bee: moves exactly one hex as a ground slide (see [isValidGroundSlide]).
+ */
 fun getQueenMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<AxialHex> {
     return fromHex.getNeighbors().filter { isValidGroundSlide(board, fromHex, it) }
 }
@@ -600,10 +608,19 @@ fun getLadybugMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Ax
     return results.map { parseKey(it) }
 }
 
+/**
+ * Pillbug (standard move): slides one hex like the Queen Bee. Its special
+ * lift-and-place ability is handled separately by [getPillbugSpecialTargets].
+ */
 fun getPillbugMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<AxialHex> {
     return getQueenMoves(board, fromHex)
 }
 
+/**
+ * Dispatches to the movement calculator for a concrete [bugType]. A Mosquito
+ * has no fixed movement; its effective type is resolved via
+ * [getEffectiveBugTypes] before this is called.
+ */
 fun getMovesForBugType(
     board: Map<String, List<Piece>>,
     fromHex: AxialHex,
@@ -621,6 +638,12 @@ fun getMovesForBugType(
     }
 }
 
+/**
+ * All legal destinations for the top piece at [fromHex] owned by [player]:
+ * the piece must be the top of its stack, its removal must not break the One
+ * Hive rule, and every destination must pass the insect's own movement rules
+ * plus the One Hive connectivity check.
+ */
 @Suppress("UNUSED_PARAMETER")
 fun getValidMovesForPiece(
     board: Map<String, List<Piece>>,
@@ -662,6 +685,12 @@ fun getValidMovesForPiece(
     return validDestinations.map { parseKey(it) }
 }
 
+/**
+ * Pillbug special ability: lift an adjacent unstacked piece (friend or foe)
+ * and place it in an empty hex adjacent to the Pillbug. The Pillbug itself
+ * must not have just moved, the lifted piece must not have just moved, and the
+ * destination cannot be behind a stacked (height 2+) gate hex.
+ */
 fun getPillbugSpecialTargets(
     board: Map<String, List<Piece>>,
     pillbugHex: AxialHex,
