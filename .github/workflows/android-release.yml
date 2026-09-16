@@ -34,7 +34,11 @@ jobs:
         uses: android-actions/setup-android@v4
         with:
           log-accepted-android-sdk-licenses: true
-          disable-spdx-license-validation: true
+          # The legacy 'tools' package was removed from Google's SDK repos,
+          # which made the action's default 'tools platform-tools' package list
+          # fail. Install only platform-tools; build-tools/platforms are
+          # preinstalled on the runner image (or auto-downloaded by AGP).
+          packages: 'platform-tools'
 
       - name: Generate Gradle Wrapper
         run: |
