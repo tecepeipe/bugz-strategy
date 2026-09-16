@@ -1,4 +1,3 @@
-```
 # Compiled and build artifacts
 *.class
 *.dex
@@ -11,7 +10,11 @@
 node_modules/
 .gradle/
 build/
+android/app/build/
 .externalNativeBuild/
+
+# Static build output (GitHub Pages builds from source in CI)
+dist/
 
 # Logs and temp files
 *.log
@@ -49,4 +52,3 @@ captures/
 .Trashes
 ehthumbs.db
 Thumbs.db
-```
