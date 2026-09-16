@@ -737,4 +737,37 @@ class BugzEngineTest {
         assertEquals(BugType.QUEEN, action?.bugType)
         assertEquals(Player.TWO, action?.player)
     }
+
+    @Test
+    fun `AI is forced to place its queen on its 3rd turn for all difficulties`() {
+        val engine = HiveEngine()
+        engine.initNewGame(ExpansionsConfig())
+
+        fun place(piece: Piece, hex: AxialHex) {
+            engine.executeMove(
+                MoveAction(MoveAction.ActionType.PLACE, piece.id, piece.type, piece.player, toHex = hex),
+            )
+        }
+
+        place(engine.p1Reserve.first { it.type == BugType.QUEEN }, AxialHex(0, 0))
+        place(engine.p2Reserve.first { it.type == BugType.SPIDER }, AxialHex(1, 0))
+        place(engine.p1Reserve.first { it.type == BugType.SPIDER }, AxialHex(0, -1))
+        place(engine.p2Reserve.first { it.type == BugType.BEETLE }, AxialHex(2, -1))
+        place(engine.p1Reserve.first { it.type == BugType.GRASSHOPPER }, AxialHex(-1, 0))
+
+        // P2 (AI) is on its 3rd turn with its queen still in reserve.
+        assertEquals(3, engine.turnCountFor(Player.TWO))
+        assertEquals(Player.TWO, engine.currentPlayer)
+
+        for (diff in AIDifficulty.values()) {
+            val action = computeAIMove(
+                engine.board, Player.TWO,
+                engine.p2Reserve, engine.p1Reserve,
+                engine.turnCountFor(Player.TWO), engine.turnCountFor(Player.ONE),
+                diff, engine.lastMovedPieceId, engine.expansions,
+            )
+            assertEquals("Difficulty $diff should place the queen on turn 3", MoveAction.ActionType.PLACE, action?.type)
+            assertEquals("Difficulty $diff should place the queen on turn 3", BugType.QUEEN, action?.bugType)
+        }
+    }
 }

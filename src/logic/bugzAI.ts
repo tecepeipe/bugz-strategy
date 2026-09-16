@@ -41,6 +41,15 @@ export function computeAIMove(
 
   if (legalActions.length === 0) return null;
 
+  // Hive queen rule: the queen must be placed by the 3rd move. Force the AI
+  // to place its queen on its 3rd turn if it has not done so already.
+  if (!isQueenPlaced(board, aiPlayer) && turnCountAI >= 3) {
+    const queenActions = legalActions.filter(a => a.bugType === 'QUEEN');
+    if (queenActions.length > 0) {
+      return queenActions[Math.floor(Math.random() * queenActions.length)];
+    }
+  }
+
   if (difficulty === 'EASY') {
     return computeEasyMove(board, aiPlayer, legalActions, turnCountAI);
   } else if (difficulty === 'MEDIUM') {
@@ -72,14 +81,14 @@ export function computeAIMove(
 
 // Easy AI: Mostly random but with basic common sense — prefer placing
 // pieces from reserve over shuffling existing ones, and always place the
-// Queen by turn 4.
+// Queen by turn 3.
 function computeEasyMove(
   board: BoardState,
   aiPlayer: Player,
   legalActions: MoveAction[],
   turnCountAI: number
 ): MoveAction {
-  // Play the queen when it is due (by the 4th turn) if the AI forgot to place it earlier.
+  // Play the queen when it is due (by the 3rd turn) if the AI forgot to place it earlier.
   if (!isQueenPlaced(board, aiPlayer) && turnCountAI >= 3) {
     const queenActions = legalActions.filter(a => a.bugType === 'QUEEN');
     if (queenActions.length > 0) {

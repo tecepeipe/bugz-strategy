@@ -1077,6 +1077,15 @@ fun computeAIMove(
 
     if (legalActions.isEmpty()) return null
 
+    // Hive queen rule: the queen must be placed by the 3rd move. Force the AI
+    // to place its queen on its 3rd turn if it has not done so already.
+    if (!isQueenPlaced(board, aiPlayer) && turnCountAI >= 3) {
+        val queenActions = legalActions.filter { it.bugType == BugType.QUEEN }
+        if (queenActions.isNotEmpty()) {
+            return queenActions[Math.floor(Math.random() * queenActions.size).toInt()]
+        }
+    }
+
     return when (difficulty) {
         AIDifficulty.EASY -> computeEasyMove(board, aiPlayer, legalActions, turnCountAI)
         AIDifficulty.MEDIUM -> computeMediumMove(
@@ -1096,8 +1105,8 @@ fun computeEasyMove(
     legalActions: List<MoveAction>,
     turnCountAI: Int,
 ): MoveAction {
-    // Play the queen when it is due (by the 4th turn) if the AI forgot to place it earlier.
-    if (!isQueenPlaced(board, aiPlayer) && turnCountAI >= 4) {
+    // Play the queen when it is due (by the 3rd turn) if the AI forgot to place it earlier.
+    if (!isQueenPlaced(board, aiPlayer) && turnCountAI >= 3) {
         val queenActions = legalActions.filter { it.bugType == BugType.QUEEN }
         if (queenActions.isNotEmpty()) {
             return queenActions[Math.floor(Math.random() * queenActions.size).toInt()]
