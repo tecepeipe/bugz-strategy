@@ -369,6 +369,31 @@ function App() {
       }
     }
 
+    // Pillbug special is a lift-and-place: re-validate it against the current
+    // board so no piece (e.g. a queen) is ever relocated to an unreachable
+    // destination.
+    if (action.type === 'PILLBUG_SPECIAL' && action.fromHex && action.pillbugTargetHex) {
+      const pillbugStack = board.get(hexKey(action.fromHex.q, action.fromHex.r)) || [];
+      const pillbugTop = pillbugStack[pillbugStack.length - 1];
+      if (!pillbugTop || pillbugTop.player !== action.player || pillbugTop.type !== 'PILLBUG') {
+        setToastMessage('Invalid move: Not your Pillbug!');
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      const options = getPillbugSpecialTargets(board, action.fromHex, action.player, lastMovedPieceId);
+      const isValidPillbugMove = options.some(
+        opt =>
+          opt.targetHex.q === action.pillbugTargetHex!.q &&
+          opt.targetHex.r === action.pillbugTargetHex!.r &&
+          opt.destinationHexes.some(d => d.q === action.toHex.q && d.r === action.toHex.r)
+      );
+      if (!isValidPillbugMove) {
+        setToastMessage('Invalid move: Pillbug destination not reachable!');
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+    }
+
     saveSnapshot(
       board,
       p1Reserve,

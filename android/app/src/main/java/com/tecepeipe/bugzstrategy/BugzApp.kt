@@ -898,6 +898,25 @@ class HiveEngine {
             }
         }
 
+        // Pillbug special is a lift-and-place: re-validate it against the
+        // current board so no piece (e.g. a queen) is ever relocated to an
+        // unreachable destination.
+        if (action.type == MoveAction.ActionType.PILLBUG_SPECIAL && action.fromHex != null && action.pillbugTargetHex != null) {
+            val pillbugStack = board[action.fromHex.key()]
+            val pillbugTop = pillbugStack?.lastOrNull()
+            if (pillbugTop == null || pillbugTop.player != action.player || pillbugTop.type != BugType.PILLBUG) {
+                return "Invalid move: Not your Pillbug!"
+            }
+            val options = getPillbugSpecialTargets(board, action.fromHex, action.player, lastMovedPieceId)
+            val isValidPillbugMove = options.any { opt ->
+                opt.targetHex.key() == action.pillbugTargetHex.key() &&
+                    opt.destinationHexes.any { it.key() == action.toHex.key() }
+            }
+            if (!isValidPillbugMove) {
+                return "Invalid move: Pillbug destination not reachable!"
+            }
+        }
+
         var logDesc = ""
         var actuallyMovedId: String? = null
 
@@ -2279,25 +2298,33 @@ fun SetupModal(
         onDismissRequest = onDismiss,
         title = { Text("🐝 New Hive Game", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Text("Select Game Mode:", fontWeight = FontWeight.SemiBold)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = mode == GameMode.PASS_AND_PLAY,
                         onClick = { mode = GameMode.PASS_AND_PLAY },
                         label = { Text("Pass & Play") },
+                        modifier = Modifier.weight(1f),
                     )
                     FilterChip(
                         selected = mode == GameMode.AI,
                         onClick = { mode = GameMode.AI },
                         label = { Text("VS AI Engine") },
-                    )
-                    FilterChip(
-                        selected = mode == GameMode.TUTORIAL,
-                        onClick = { mode = GameMode.TUTORIAL },
-                        label = { Text("🎓 Tutorial") },
+                        modifier = Modifier.weight(1f),
                     )
                 }
+                FilterChip(
+                    selected = mode == GameMode.TUTORIAL,
+                    onClick = { mode = GameMode.TUTORIAL },
+                    label = { Text("🎓 Tutorial") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
                 if (mode == GameMode.AI) {
                     Text("AI Difficulty:", fontWeight = FontWeight.SemiBold)

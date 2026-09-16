@@ -402,6 +402,35 @@ class BugzEngineTest {
     }
 
     @Test
+    fun `queen never slides through a closed gate in any neighbor occupancy pattern`() {
+        val origin = AxialHex(0, 0)
+        val neighbors = origin.getNeighbors()
+
+        for (mask in 0 until 64) {
+            val board = mutableMapOf<String, MutableList<Piece>>()
+            board[origin.key()] = mutableListOf(Piece("p1_q", BugType.QUEEN, Player.ONE))
+            var idx = 0
+            for (n in neighbors) {
+                if ((mask and (1 shl idx)) != 0) {
+                    board[n.key()] = mutableListOf(Piece("p2_$idx", BugType.SPIDER, Player.TWO))
+                }
+                idx++
+            }
+
+            val moves = getQueenMoves(board, origin)
+            for (dest in moves) {
+                val common = getCommonNeighbors(origin, dest)
+                val gateClosed = common.size == 2 &&
+                    isOccupied(board, common[0]) && isOccupied(board, common[1])
+                assertFalse(
+                    "mask=$mask queen must not slide through closed gate to ${dest.key()}",
+                    gateClosed,
+                )
+            }
+        }
+    }
+
+    @Test
     fun `beetle on top cannot step down through ground-level gate`() {
         // A beetle on top of a piece should not be able to step down to
         // an empty ground hex if both gate hexes at ground level are occupied.
