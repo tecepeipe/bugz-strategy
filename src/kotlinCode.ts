@@ -88,7 +88,7 @@ enum class BugType(
     SPIDER("Spider", "🕷️", 2),
     BEETLE("Beetle", "🪲", 2),
     GRASSHOPPER("Grasshopper", "🦗", 3),
-    SOLDIER_ANT("Soldier Ant", "🐜", 3),
+    SOLDIER_ANT("Ant", "🐜", 3),
     MOSQUITO("Mosquito", "🦟", 1, true),
     LADYBUG("Ladybug", "🐞", 1, true),
     PILLBUG("Pillbug", "🪳", 1, true)
@@ -2216,7 +2216,7 @@ fun RulesDialog(onClose: () -> Unit) {
                     fontSize = 13.sp
                 )
                 Text(
-                    "🐜 Soldier Ant — may slide any number of hexes along the outside of the swarm.",
+                    "🐜 Ant — may slide any number of hexes along the outside of the swarm.",
                     fontSize = 13.sp
                 )
                 Text(

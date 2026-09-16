@@ -146,11 +146,19 @@ export function canRemovePieceWithoutBreakingSwarm(board: BoardState, fromHex: A
  * the physical rule that a piece must be able to fit through the gap at
  * the narrowest transition point.
  */
+/**
+ * The "freedom to move" (one-hex slide) rule. Two hexes share exactly two
+ * common neighbours that form the gate the piece must pass through. A gate
+ * hex blocks when it is occupied AND its stack reaches the clearance level
+ * (the highest of the explicit clearance, the level the piece leaves, and the
+ * level it lands on). Empty gate hexes never block. This matches the Android
+ * engine's canSlide.
+ */
 export function canSlide(
   board: BoardState,
   fromHex: AxialHex,
   toHex: AxialHex,
-  _atHeight?: number
+  atHeight: number = 0
 ): boolean {
   const common = getCommonNeighbors(fromHex, toHex);
   if (common.length !== 2) return false;
@@ -158,11 +166,16 @@ export function canSlide(
   const h1 = getStackHeight(board, common[0]);
   const h2 = getStackHeight(board, common[1]);
 
-  const fromLevel = Math.max(0, getStackHeight(board, fromHex) - 1);
-  const toLevel = getStackHeight(board, toHex);
-  const gateLevel = Math.min(fromLevel, toLevel);
+  // The moving piece must fit through the gap at the clearance level: the
+  // higher of the explicit clearance, the level the piece leaves, and the
+  // level it lands on. A gate hex only blocks if it is occupied AND tall
+  // enough to reach that clearance. Empty hexes never block.
+  const maxAllowedHeight = Math.max(atHeight, getStackHeight(board, fromHex) - 1, getStackHeight(board, toHex));
 
-  if (h1 > gateLevel && h2 > gateLevel) {
+  const h1Blocks = h1 > 0 && h1 >= maxAllowedHeight;
+  const h2Blocks = h2 > 0 && h2 >= maxAllowedHeight;
+
+  if (h1Blocks && h2Blocks) {
     return false;
   }
 
@@ -488,7 +501,7 @@ export function getGrasshopperMoves(board: BoardState, fromHex: AxialHex): Axial
   return moves;
 }
 
-// 5. Soldier Ant: Moves any distance around the perimeter of the swarm.
+// 5. Ant: Moves any distance around the perimeter of the swarm.
 // Every step must be a legal one-hex slide: empty destination, open gate,
 // and the ant must stay in contact with the hive. This keeps the search
 // bounded to the hive surface and forbids walking through occupied hexes.

@@ -56,6 +56,28 @@ function keys(moves: AxialHex[]): string {
   return moves.map(m => `${m.q},${m.r}`).join(', ');
 }
 
+function neighborsOf(h: AxialHex): AxialHex[] {
+  return [
+    { q: h.q + 1, r: h.r }, { q: h.q + 1, r: h.r - 1 }, { q: h.q, r: h.r - 1 },
+    { q: h.q - 1, r: h.r }, { q: h.q - 1, r: h.r + 1 }, { q: h.q, r: h.r + 1 },
+  ];
+}
+
+function commonNeighbors(a: AxialHex, b: AxialHex): AxialHex[] {
+  const aSet = new Set(neighborsOf(a).map(n => hexKey(n.q, n.r)));
+  const bSet = new Set(neighborsOf(b).map(n => hexKey(n.q, n.r)));
+  return Array.from(aSet)
+    .filter(k => bSet.has(k))
+    .map(k => {
+      const [q, r] = k.split(',').map(Number);
+      return { q, r };
+    });
+}
+
+function isOcc(board: BoardState, h: AxialHex): boolean {
+  return (board.get(hexKey(h.q, h.r))?.length ?? 0) > 0;
+}
+
 function runSuite(name: string, rules: MovementSuite): void {
   // --- queen movement (one-hex slide + gate rule) ---
 
@@ -86,6 +108,25 @@ function runSuite(name: string, rules: MovementSuite): void {
     const moves = rules.getQueenMoves(b, hex(0, 0));
 
     assert.ok(!has(moves, 0, 1), `queen must NOT escape through a blocked gate, got [${keys(moves)}]`);
+  });
+
+  test(`${name}: queen never slides through a closed gate in any occupancy pattern`, () => {
+    const origin = hex(0, 0);
+    const nbrs = neighborsOf(origin);
+    for (let mask = 0; mask < 64; mask++) {
+      const b = makeBoard();
+      setHex(b, 0, 0, [piece('p1_q', 'QUEEN', 1)]);
+      nbrs.forEach((n, i) => {
+        if (mask & (1 << i)) setHex(b, n.q, n.r, [piece(`p2_${i}`, 'SPIDER', 2)]);
+      });
+
+      const moves = rules.getQueenMoves(b, origin);
+      for (const d of moves) {
+        const common = commonNeighbors(origin, d);
+        const gateClosed = common.length === 2 && isOcc(b, common[0]) && isOcc(b, common[1]);
+        assert.ok(!gateClosed, `${name}: queen slid through a closed gate to ${d.q},${d.r} in pattern ${mask}`);
+      }
+    }
   });
 
   // --- ant movement (freedom to move / gate rule) ---

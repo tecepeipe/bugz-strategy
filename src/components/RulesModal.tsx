@@ -65,7 +65,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                 <span className="text-base">🦗</span> <span className="font-semibold text-slate-100">Grasshopper</span> — {t('insectGrasshopper')}
               </li>
               <li>
-                <span className="text-base">🐜</span> <span className="font-semibold text-slate-100">Soldier Ant</span> — {t('insectAnt')}
+                <span className="text-base">🐜</span> <span className="font-semibold text-slate-100">Ant</span> — {t('insectAnt')}
               </li>
               <li>
                 <span className="text-base">🦟</span> <span className="font-semibold text-slate-100">Mosquito</span> — {t('insectMosquito')}

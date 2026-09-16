@@ -686,10 +686,44 @@ class BugzEngineTest {
         board[AxialHex(1, 0).key()] = mutableListOf(Piece("p1_friend", BugType.SPIDER, Player.ONE))
         board[AxialHex(-1, 1).key()] = mutableListOf(Piece("p1_queen", BugType.QUEEN, Player.ONE))
 
-        val options = getPillbugSpecialTargets(board, AxialHex(0, 0), Player.ONE, null)
+val options = getPillbugSpecialTargets(board, AxialHex(0, 0), Player.ONE, null)
         val friendOption = options.first { it.targetHex == AxialHex(1, 0) }
 
         assertTrue("Pillbug should be able to move the friend to (0,1)", friendOption.destinationHexes.contains(AxialHex(0, 1)))
+    }
+
+    @Test
+    fun `pillbug that just moved cannot use its special ability`() {
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_pillbug", BugType.PILLBUG, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p1_friend", BugType.SPIDER, Player.ONE))
+        board[AxialHex(-1, 1).key()] = mutableListOf(Piece("p1_queen", BugType.QUEEN, Player.ONE))
+
+        val options = getPillbugSpecialTargets(board, AxialHex(0, 0), Player.ONE, "p1_pillbug")
+
+        assertTrue("A just-moved Pillbug must not use its ability", options.isEmpty())
+    }
+
+    @Test
+    fun `pillbug special cannot lift through a stacked gate destination`() {
+        // Gate hex for lifting the friend from (1,0) to (0,-1) is (1,-1); a
+        // stack of height 2 there blocks that destination.
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_pillbug", BugType.PILLBUG, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p1_friend", BugType.SPIDER, Player.ONE))
+        board[AxialHex(0, 1).key()] = mutableListOf(Piece("p1_queen", BugType.QUEEN, Player.ONE))
+        board[AxialHex(1, -1).key()] = mutableListOf(
+            Piece("p2_q", BugType.QUEEN, Player.TWO),
+            Piece("p2_beetle", BugType.BEETLE, Player.TWO),
+        )
+
+        val options = getPillbugSpecialTargets(board, AxialHex(0, 0), Player.ONE, null)
+        val friendOption = options.first { it.targetHex == AxialHex(1, 0) }
+
+        assertFalse(
+            "Pillbug must not lift the friend through a stacked gate to (0,-1)",
+            friendOption.destinationHexes.contains(AxialHex(0, -1)),
+        )
     }
 
     // --- tutorial step machine ---

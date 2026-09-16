@@ -480,7 +480,7 @@ export function getGrasshopperMoves(board: BoardState, fromHex: AxialHex): Axial
   return moves;
 }
 
-// 5. Soldier Ant: Moves any distance around the perimeter of the hive.
+// 5. Ant: Moves any distance around the perimeter of the hive.
 // Every step must be a legal one-hex slide: empty destination, open gate,
 // and the ant must stay in contact with the hive. This keeps the search
 // bounded to the hive surface and forbids walking through occupied hexes.

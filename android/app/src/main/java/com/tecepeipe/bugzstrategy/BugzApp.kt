@@ -86,7 +86,7 @@ enum class BugType(
     SPIDER("Spider", "🕷️", 2),
     BEETLE("Beetle", "🪲", 2),
     GRASSHOPPER("Grasshopper", "🦗", 3),
-    SOLDIER_ANT("Soldier Ant", "🐜", 3),
+    SOLDIER_ANT("Ant", "🐜", 3),
     MOSQUITO("Mosquito", "🦟", 1, true),
     LADYBUG("Ladybug", "🐞", 1, true),
     PILLBUG("Pillbug", "🪳", 1, true),
@@ -227,6 +227,25 @@ fun cloneBoard(board: Map<String, List<Piece>>): MutableMap<String, MutableList<
     return board.mapValues { it.value.toMutableList() }.toMutableMap()
 }
 
+/**
+ * Returns a deep copy of [board] with the top piece on [hex] removed (or the
+ * whole hex if the stack had a single piece). Used to reason about a position
+ * with a moving piece conceptually lifted off the board — e.g. when checking
+ * the One Hive Rule or when a multi-step mover leaves its origin empty.
+ */
+fun cloneBoardWithoutTop(board: Map<String, List<Piece>>, hex: AxialHex): MutableMap<String, MutableList<Piece>> {
+    val copy = cloneBoard(board)
+    val stack = copy[hex.key()]
+    if (stack != null) {
+        if (stack.size == 1) {
+            copy.remove(hex.key())
+        } else {
+            stack.removeAt(stack.size - 1)
+        }
+    }
+    return copy
+}
+
 fun getTopPiece(board: Map<String, List<Piece>>, hex: AxialHex): Piece? {
     val stack = board[hex.key()]
     return if (stack.isNullOrEmpty()) null else stack.last()
@@ -295,6 +314,14 @@ fun getCommonNeighbors(a: AxialHex, b: AxialHex): List<AxialHex> {
     return aSet.intersect(bSet).toList()
 }
 
+/**
+ * The "freedom to move" (one-hex slide) rule. Two hexes [fromHex] and [toHex]
+ * share exactly two common neighbours that form the gate the piece must pass
+ * through. The slide is legal only if the gate is not fully blocked: a gate
+ * hex blocks when it is occupied AND its stack reaches the clearance level
+ * (the highest of [atHeight], the level the piece leaves, and the level it
+ * lands on). Empty gate hexes never block.
+ */
 fun canSlide(
     board: Map<String, List<Piece>>,
     fromHex: AxialHex,
@@ -320,6 +347,11 @@ fun canSlide(
     return true
 }
 
+/**
+ * A legal ground-level slide: the destination must be empty, the gate must be
+ * open (see [canSlide]), and after the moving piece leaves [fromHex] the
+ * destination must still touch at least one other piece (the One Hive Rule).
+ */
 fun isValidGroundSlide(
     board: Map<String, List<Piece>>,
     fromHex: AxialHex,
@@ -328,16 +360,7 @@ fun isValidGroundSlide(
     if (isOccupied(board, toHex)) return false
     if (!canSlide(board, fromHex, toHex, 0)) return false
 
-    val testBoard = cloneBoard(board)
-    val stack = testBoard[fromHex.key()]
-    if (stack != null) {
-        if (stack.size == 1) {
-            testBoard.remove(fromHex.key())
-        } else {
-            stack.removeAt(stack.size - 1)
-        }
-    }
-
+    val testBoard = cloneBoardWithoutTop(board, fromHex)
     val touchesHive = toHex.getNeighbors().any { isOccupied(testBoard, it) }
     return touchesHive
 }
@@ -424,18 +447,16 @@ fun getQueenMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Axia
     return fromHex.getNeighbors().filter { isValidGroundSlide(board, fromHex, it) }
 }
 
+/**
+ * Spider: moves exactly 3 steps around the perimeter without backtracking.
+ * Each step must be a legal one-hex ground slide ([isValidGroundSlide]) so the
+ * spider can never walk through an occupied hex, squeeze through a closed gate,
+ * or wander away from the hive and back.
+ */
 fun getSpiderMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<AxialHex> {
     // The moving piece is removed from the board while computing its moves:
     // gate checks must treat its origin as empty once it leaves.
-    val boardWithoutPiece = cloneBoard(board)
-    val fromStack = boardWithoutPiece[fromHex.key()]
-    if (fromStack != null) {
-        if (fromStack.size == 1) {
-            boardWithoutPiece.remove(fromHex.key())
-        } else {
-            fromStack.removeAt(fromStack.size - 1)
-        }
-    }
+    val boardWithoutPiece = cloneBoardWithoutTop(board, fromHex)
 
     val results = mutableSetOf<String>()
 
@@ -462,6 +483,11 @@ fun getSpiderMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Axi
     return results.map { parseKey(it) }
 }
 
+/**
+ * Beetle: moves one hex; it may climb onto a piece, crawl across the top of
+ * the hive, or step back down. Climbing moves are gated at the level the
+ * beetle travels through, ground moves use the regular slide rules.
+ */
 fun getBeetleMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<AxialHex> {
     val moves = mutableListOf<AxialHex>()
     val currentHeight = getStackHeight(board, fromHex)
@@ -485,6 +511,11 @@ fun getBeetleMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<Axi
     return moves
 }
 
+/**
+ * Grasshopper: jumps in a straight line over at least one piece to the first
+ * empty hex. It is the only piece not restricted by the freedom-to-move rule
+ * and may jump over stacks of any height.
+ */
 fun getGrasshopperMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<AxialHex> {
     val moves = mutableListOf<AxialHex>()
 
@@ -504,18 +535,16 @@ fun getGrasshopperMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): Lis
     return moves
 }
 
+/**
+ * Soldier Ant: may move any distance around the perimeter of the hive in a
+ * single move. Every step must be a legal one-hex ground slide
+ * ([isValidGroundSlide]), which keeps the search bounded to the hive surface
+ * and forbids walking through occupied hexes or closed gates.
+ */
 fun getSoldierAntMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<AxialHex> {
     // The moving piece is removed from the board while computing its moves:
     // gate checks must treat its origin as empty once it leaves.
-    val boardWithoutPiece = cloneBoard(board)
-    val fromStack = boardWithoutPiece[fromHex.key()]
-    if (fromStack != null) {
-        if (fromStack.size == 1) {
-            boardWithoutPiece.remove(fromHex.key())
-        } else {
-            fromStack.removeAt(fromStack.size - 1)
-        }
-    }
+    val boardWithoutPiece = cloneBoardWithoutTop(board, fromHex)
 
     val visited = mutableSetOf(fromHex.key())
     val queue = mutableListOf(fromHex)
@@ -541,6 +570,10 @@ fun getSoldierAntMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List
     return results.map { parseKey(it) }
 }
 
+/**
+ * Ladybug: exactly 3 steps — climb onto the hive, move one hex across the
+ * top, then step back down to an empty ground hex.
+ */
 fun getLadybugMoves(board: Map<String, List<Piece>>, fromHex: AxialHex): List<AxialHex> {
     val results = mutableSetOf<String>()
 
@@ -614,15 +647,7 @@ fun getValidMovesForPiece(
     val validDestinations = mutableSetOf<String>()
 
     // Create board without the moving piece to check One Hive Rule for destinations
-    val boardWithoutPiece = cloneBoard(board)
-    val fromStack = boardWithoutPiece[fromHex.key()]
-    if (fromStack != null) {
-        if (fromStack.size == 1) {
-            boardWithoutPiece.remove(fromHex.key())
-        } else {
-            fromStack.removeAt(fromStack.size - 1)
-        }
-    }
+    val boardWithoutPiece = cloneBoardWithoutTop(board, fromHex)
 
     for (bugType in effectiveBugTypes) {
         val dests = getMovesForBugType(board, fromHex, bugType)
@@ -637,7 +662,6 @@ fun getValidMovesForPiece(
     return validDestinations.map { parseKey(it) }
 }
 
-@Suppress("UNUSED_PARAMETER")
 fun getPillbugSpecialTargets(
     board: Map<String, List<Piece>>,
     pillbugHex: AxialHex,
@@ -648,6 +672,10 @@ fun getPillbugSpecialTargets(
 
     val stack = board[pillbugHex.key()]
     if (stack.isNullOrEmpty()) return emptyList()
+
+    // Official rule: a Pillbug that was just moved is "stunned" and cannot use
+    // its special ability on the opponent's immediately following turn.
+    if (stack.last().id == lastMovedPieceId) return emptyList()
 
     val emptyAdjacentHexes = pillbugHex.getNeighbors().filter { !isOccupied(board, it) }
     if (emptyAdjacentHexes.isEmpty()) return emptyList()
@@ -663,13 +691,28 @@ fun getPillbugSpecialTargets(
                 if (targetPiece.id == lastMovedPieceId) continue
                 if (!canRemovePieceWithoutBreakingHive(board, adjHex)) continue
 
-                options.add(
-                    PillbugTargetOption(
-                        targetHex = adjHex,
-                        piece = targetPiece,
-                        destinationHexes = emptyAdjacentHexes,
-                    ),
-                )
+                // Beetle-gate rule: the lifted piece passes over the Pillbug to
+                // its destination, so a gate hex (a common neighbour of origin
+                // and destination other than the Pillbug's own hex) with stack
+                // height 2+ blocks the passage. The gate is blocked only if ALL
+                // such gate hexes are stacked.
+                val reachableDestinations = emptyAdjacentHexes.filter { destHex ->
+                    val gateHexes = getCommonNeighbors(adjHex, destHex)
+                        .filter { it.key() != pillbugHex.key() }
+                    val gateBlocked = gateHexes.isNotEmpty() &&
+                        gateHexes.all { getStackHeight(board, it) >= 2 }
+                    !gateBlocked
+                }
+
+                if (reachableDestinations.isNotEmpty()) {
+                    options.add(
+                        PillbugTargetOption(
+                            targetHex = adjHex,
+                            piece = targetPiece,
+                            destinationHexes = reachableDestinations,
+                        ),
+                    )
+                }
             }
         }
     }
@@ -2632,7 +2675,7 @@ fun RulesDialog(onClose: () -> Unit) {
                     fontSize = 13.sp,
                 )
                 Text(
-                    "🐜 Soldier Ant — may slide any number of hexes along the outside of the Hive.",
+                    "🐜 Ant — may slide any number of hexes along the outside of the Hive.",
                     fontSize = 13.sp,
                 )
                 Text(

@@ -41,6 +41,15 @@ export function computeAIMove(
 
   if (legalActions.length === 0) return null;
 
+  // Hive queen rule: the queen must be placed by the 3rd move. Force the AI
+  // to place its queen on its 3rd turn if it has not done so already.
+  if (!isQueenPlaced(board, aiPlayer) && turnCountAI >= 3) {
+    const queenActions = legalActions.filter(a => a.bugType === 'QUEEN');
+    if (queenActions.length > 0) {
+      return queenActions[Math.floor(Math.random() * queenActions.length)];
+    }
+  }
+
   if (difficulty === 'EASY') {
     return computeEasyMove(board, aiPlayer, legalActions, turnCountAI);
   } else if (difficulty === 'MEDIUM') {
@@ -70,20 +79,20 @@ export function computeAIMove(
   }
 }
 
-// Easy AI: Selects random legal move, prioritizing placing Queen on turns 3 or 4 if not placed yet
+// Easy AI: Selects random legal move, prioritizing Queen placement by turn 3
 function computeEasyMove(
   board: BoardState,
   aiPlayer: Player,
   legalActions: MoveAction[],
   turnCountAI: number
 ): MoveAction {
-  // If Queen not placed and turn is 3 or 4, prioritize Queen placement
-  if (!isQueenPlaced(board, aiPlayer)) {
+  // The queen is forced on the 3rd turn by computeAIMove; this fallback keeps
+  // the behaviour consistent even when the difficulty functions are called
+  // directly.
+  if (!isQueenPlaced(board, aiPlayer) && turnCountAI >= 3) {
     const queenActions = legalActions.filter(a => a.bugType === 'QUEEN');
     if (queenActions.length > 0) {
-      if (turnCountAI >= 3 || Math.random() < 0.6) {
-        return queenActions[Math.floor(Math.random() * queenActions.length)];
-      }
+      return queenActions[Math.floor(Math.random() * queenActions.length)];
     }
   }
 

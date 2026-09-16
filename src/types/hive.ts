@@ -50,7 +50,7 @@ export const BUG_DEFINITIONS: Record<BugType, BugInfo> = {
   },
   SOLDIER_ANT: {
     type: 'SOLDIER_ANT',
-    name: 'Soldier Ant',
+    name: 'Ant',
     emoji: '🐜',
     description: 'Moves any distance around the perimeter of the hive.',
     count: 3,
