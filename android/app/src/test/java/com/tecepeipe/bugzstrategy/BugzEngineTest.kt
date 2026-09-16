@@ -455,6 +455,9 @@ class BugzEngineTest {
 
         assertFalse("Beetle on top should NOT step down through blocked ground gate", moves.contains(AxialHex(1, 0)))
     }
+}
+
+class BugzMovementTest {
 
     // --- ant movement (freedom to move / gate rule) ---
 
@@ -725,6 +728,9 @@ val options = getPillbugSpecialTargets(board, AxialHex(0, 0), Player.ONE, null)
             friendOption.destinationHexes.contains(AxialHex(0, -1)),
         )
     }
+}
+
+class BugzAITest {
 
     // --- tutorial step machine ---
 
@@ -803,5 +809,88 @@ val options = getPillbugSpecialTargets(board, AxialHex(0, 0), Player.ONE, null)
             assertEquals("Difficulty $diff should place the queen on turn 3", MoveAction.ActionType.PLACE, action?.type)
             assertEquals("Difficulty $diff should place the queen on turn 3", BugType.QUEEN, action?.bugType)
         }
+    }
+
+    // --- One Hive / freedom-to-move validation ---
+
+    @Test
+    fun `sliding piece bridging two branches cannot move`() {
+        // Branch A = {(0,0),(0,-1)}, Branch B = {(2,0),(3,0)}. The beetle at
+        // (1,0) is the ONLY link between the branches, so moving it would break
+        // the One Hive Rule: it must have no legal moves.
+        val board = mutableMapOf<String, MutableList<Piece>>()
+        board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_q", BugType.QUEEN, Player.ONE))
+        board[AxialHex(0, -1).key()] = mutableListOf(Piece("p1_a", BugType.SPIDER, Player.ONE))
+        board[AxialHex(1, 0).key()] = mutableListOf(Piece("p1_beetle", BugType.BEETLE, Player.ONE))
+        board[AxialHex(2, 0).key()] = mutableListOf(Piece("p1_b", BugType.SPIDER, Player.ONE))
+        board[AxialHex(3, 0).key()] = mutableListOf(Piece("p1_c", BugType.SPIDER, Player.ONE))
+
+        val moves = getValidMovesForPiece(
+            board, AxialHex(1, 0), Player.ONE, 99, null,
+            ExpansionsConfig(mosquito = false, ladybug = false, pillbug = false),
+        )
+
+        assertTrue("A piece bridging two branches must not be able to move (One Hive Rule)", moves.isEmpty())
+    }
+
+    @Test
+    fun `no sliding piece ever moves illegally on random boards`() {
+        val rnd = java.util.Random(42)
+        val types = listOf(
+            BugType.QUEEN, BugType.SPIDER, BugType.BEETLE, BugType.SOLDIER_ANT, BugType.GRASSHOPPER,
+        )
+        val sliders = listOf(BugType.QUEEN, BugType.SPIDER, BugType.BEETLE, BugType.SOLDIER_ANT, BugType.PILLBUG)
+        var checked = 0
+
+        repeat(5000) {
+            val board = mutableMapOf<String, MutableList<Piece>>()
+            val occupied = mutableListOf(AxialHex(0, 0))
+            board[AxialHex(0, 0).key()] = mutableListOf(Piece("p1_0", BugType.QUEEN, Player.ONE))
+            var idx = 1
+            repeat(rnd.nextInt(8) + 3) {
+                val frontier = occupied.flatMap { it.getNeighbors() }
+                    .filter { !board.containsKey(it.key()) }.distinct()
+                if (frontier.isEmpty()) return@repeat
+                val n = frontier[rnd.nextInt(frontier.size)]
+                val owner = if (rnd.nextBoolean()) Player.ONE else Player.TWO
+                val stack = mutableListOf(
+                    Piece("p${if (owner == Player.ONE) 1 else 2}_$idx", types[idx % types.size], owner),
+                )
+                if (rnd.nextDouble() < 0.3) stack.add(Piece("p2_x_$idx", BugType.BEETLE, Player.TWO))
+                board[n.key()] = stack
+                occupied.add(n)
+                idx++
+            }
+
+            for (hex in occupied.take(3)) {
+                val top = getTopPiece(board, hex) ?: continue
+                if (top.type !in sliders) continue
+                val moves = getValidMovesForPiece(
+                    board, hex, top.player, 99, null,
+                    ExpansionsConfig(mosquito = false, ladybug = false, pillbug = false),
+                )
+                for (m in moves) {
+                    checked++
+                    // Gate (freedom to move) must be open for a sliding piece.
+                    val common = getCommonNeighbors(hex, m)
+                    val clearance = maxOf(getStackHeight(board, hex) - 1, getStackHeight(board, m))
+                    val gateClosed = common.size == 2 &&
+                        common.all { getStackHeight(board, it) > 0 && getStackHeight(board, it) >= clearance }
+                    assertFalse(
+                        "${top.type} at ${hex.key()} illegally slid through a closed gate to ${m.key()}",
+                        gateClosed,
+                    )
+                    // One Hive Rule: the hive must stay connected after the move.
+                    val moved = cloneBoardWithoutTop(board, hex)
+                    moved.getOrPut(m.key()) { mutableListOf() }.add(top)
+                    assertTrue(
+                        "${top.type} at ${hex.key()} illegally broke the hive by moving to ${m.key()}",
+                        isHiveConnected(moved),
+                    )
+                }
+            }
+        }
+
+        assertTrue("the random-board check should have validated many moves", checked > 1000)
     }
 }

@@ -23,6 +23,14 @@ interface MovementSuite {
   getMovesForBugType(board: BoardState, fromHex: AxialHex, bugType: BugType, player: Player): AxialHex[];
   getEffectiveBugTypes(board: BoardState, fromHex: AxialHex, piece: Piece, expansions: ExpansionsConfig): BugType[];
   getPillbugSpecialTargets(board: BoardState, fromHex: AxialHex, player: Player, lastMovedPieceId: string | null): PillbugOption[];
+  getValidMovesForPiece(
+    board: BoardState,
+    fromHex: AxialHex,
+    player: Player,
+    turnCountP: number,
+    lastMovedPieceId?: string | null,
+    expansions?: ExpansionsConfig
+  ): AxialHex[];
 }
 
 const suites: Array<[string, MovementSuite]> = [
@@ -76,6 +84,25 @@ function commonNeighbors(a: AxialHex, b: AxialHex): AxialHex[] {
 
 function isOcc(board: BoardState, h: AxialHex): boolean {
   return (board.get(hexKey(h.q, h.r))?.length ?? 0) > 0;
+}
+
+function hiveConnected(board: BoardState): boolean {
+  const keys = Array.from(board.keys()).filter(k => (board.get(k)?.length ?? 0) > 0);
+  if (keys.length <= 1) return true;
+  const visited = new Set<string>([keys[0]]);
+  const queue = [keys[0]];
+  while (queue.length) {
+    const cur = queue.shift()!;
+    const [q, r] = cur.split(',').map(Number);
+    for (const n of neighborsOf({ q, r })) {
+      const k = hexKey(n.q, n.r);
+      if ((board.get(k)?.length ?? 0) > 0 && !visited.has(k)) {
+        visited.add(k);
+        queue.push(k);
+      }
+    }
+  }
+  return visited.size === keys.length;
 }
 
 function runSuite(name: string, rules: MovementSuite): void {
@@ -329,6 +356,93 @@ function runSuite(name: string, rules: MovementSuite): void {
       friendOption!.destinationHexes.some(d => d.q === 0 && d.r === 1),
       `pillbug should be able to move the friend to (0,1), got [${keys(friendOption!.destinationHexes)}]`
     );
+  });
+
+  // --- One Hive / freedom-to-move validation ---
+
+  test(`${name}: sliding piece bridging two branches cannot move`, () => {
+    const b = makeBoard();
+    setHex(b, 0, 0, [piece('p1_q', 'QUEEN', 1)]);
+    setHex(b, 0, -1, [piece('p1_a', 'SPIDER', 1)]);
+    setHex(b, 1, 0, [piece('p1_beetle', 'BEETLE', 1)]);
+    setHex(b, 2, 0, [piece('p1_b', 'SPIDER', 1)]);
+    setHex(b, 3, 0, [piece('p1_c', 'SPIDER', 1)]);
+
+    const moves = rules.getValidMovesForPiece(b, hex(1, 0), 1, 99, null, { mosquito: false, ladybug: false, pillbug: false });
+
+    assert.deepEqual(moves, [], `${name}: a piece bridging two branches must not move (One Hive Rule)`);
+  });
+
+  test(`${name}: no sliding piece ever moves illegally on random boards`, () => {
+    let seed = 42;
+    const rnd = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    };
+    const TYPES: BugType[] = ['QUEEN', 'SPIDER', 'BEETLE', 'SOLDIER_ANT', 'GRASSHOPPER'];
+    const SLIDERS = new Set(['QUEEN', 'SPIDER', 'BEETLE', 'SOLDIER_ANT', 'PILLBUG']);
+    let checked = 0;
+
+    for (let it = 0; it < 3000; it++) {
+      const board: BoardState = new Map();
+      const occupied = [hex(0, 0)];
+      setHex(board, 0, 0, [piece('p1_0', 'QUEEN', 1)]);
+      let idx = 1;
+      const grow = Math.floor(rnd() * 8) + 3;
+      for (let i = 0; i < grow; i++) {
+        const frontier = [...new Set(occupied.flatMap(o => neighborsOf(o)).map(n => hexKey(n.q, n.r)))]
+          .filter(k => !board.has(k))
+          .map(k => {
+            const [q, r] = k.split(',').map(Number);
+            return { q, r };
+          });
+        if (frontier.length === 0) break;
+        const n = frontier[Math.floor(rnd() * frontier.length)];
+        const owner: Player = rnd() < 0.5 ? 1 : 2;
+        const stack = [{ id: `p${owner}_${idx}`, type: TYPES[idx % TYPES.length], player: owner }];
+        if (rnd() < 0.3) stack.push({ id: `p2_x_${idx}`, type: 'BEETLE', player: 2 });
+        setHex(board, n.q, n.r, stack);
+        occupied.push(n);
+        idx++;
+      }
+
+      for (const bh of occupied.slice(0, 3)) {
+        const stack = board.get(hexKey(bh.q, bh.r)) || [];
+        const top = stack[stack.length - 1];
+        if (!top || !SLIDERS.has(top.type)) continue;
+        const moves = rules.getValidMovesForPiece(board, bh, top.player, 99, null, { mosquito: false, ladybug: false, pillbug: false });
+        for (const m of moves) {
+          checked++;
+          // Gate (freedom to move) must be open.
+          const common = commonNeighbors(bh, m);
+          const clearance = Math.max(
+            (board.get(hexKey(bh.q, bh.r))?.length ?? 0) - 1,
+            board.get(hexKey(m.q, m.r))?.length ?? 0
+          );
+          const gateClosed =
+            common.length === 2 &&
+            common.every(g => {
+              const h = board.get(hexKey(g.q, g.r))?.length ?? 0;
+              return h > 0 && h >= clearance;
+            });
+          assert.ok(!gateClosed, `${name}: ${top.type} slid through a closed gate ${bh.q},${bh.r}->${m.q},${m.r}`);
+
+          // One Hive Rule: the hive must stay connected after the move.
+          const moved: BoardState = new Map([...board.entries()].map(([k, v]) => [k, [...v]]));
+          const fs = moved.get(hexKey(bh.q, bh.r)) || [];
+          const movedPiece = fs.pop();
+          if (fs.length === 0) moved.delete(hexKey(bh.q, bh.r));
+          if (movedPiece) {
+            const ts = moved.get(hexKey(m.q, m.r)) || [];
+            ts.push(movedPiece);
+            moved.set(hexKey(m.q, m.r), ts);
+          }
+          assert.ok(hiveConnected(moved), `${name}: ${top.type} broke the hive moving ${bh.q},${bh.r}->${m.q},${m.r}`);
+        }
+      }
+    }
+
+    assert.ok(checked > 500, `${name}: the random-board check should have validated many moves`);
   });
 }
 
