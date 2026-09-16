@@ -57,6 +57,37 @@ function keys(moves: AxialHex[]): string {
 }
 
 function runSuite(name: string, rules: MovementSuite): void {
+  // --- queen movement (one-hex slide + gate rule) ---
+
+  test(`${name}: queen can slide through an open gate`, () => {
+    const b = makeBoard();
+    setHex(b, 0, 0, [piece('p1_q', 'QUEEN', 1)]);
+    setHex(b, 1, -1, [piece('p2_a', 'SOLDIER_ANT', 2)]);
+    setHex(b, 0, -1, [piece('p2_b', 'SOLDIER_ANT', 2)]);
+    setHex(b, -1, 0, [piece('p2_c', 'SPIDER', 2)]);
+    setHex(b, -1, 1, [piece('p2_d', 'GRASSHOPPER', 2)]);
+    // Gate for (0,0)->(0,1) is (-1,1) and (1,0); (1,0) is empty so the
+    // gate is open and the queen CAN slide to (0,1).
+    const moves = rules.getQueenMoves(b, hex(0, 0));
+
+    assert.ok(has(moves, 0, 1), `queen should slide through open gate to (0,1), got [${keys(moves)}]`);
+  });
+
+  test(`${name}: queen cannot escape through a gate blocked on both sides`, () => {
+    const b = makeBoard();
+    setHex(b, 0, 0, [piece('p1_q', 'QUEEN', 1)]);
+    setHex(b, 1, 0, [piece('p2_a', 'SOLDIER_ANT', 2)]);
+    setHex(b, 1, -1, [piece('p2_b', 'SOLDIER_ANT', 2)]);
+    setHex(b, 0, -1, [piece('p2_c', 'SPIDER', 2)]);
+    setHex(b, -1, 0, [piece('p2_d', 'SPIDER', 2)]);
+    setHex(b, -1, 1, [piece('p2_e', 'GRASSHOPPER', 2)]);
+    // Gate hexes (1,0) and (-1,1) are both occupied -> gate blocked ->
+    // queen CANNOT slide to (0,1).
+    const moves = rules.getQueenMoves(b, hex(0, 0));
+
+    assert.ok(!has(moves, 0, 1), `queen must NOT escape through a blocked gate, got [${keys(moves)}]`);
+  });
+
   // --- ant movement (freedom to move / gate rule) ---
 
   test(`${name}: ant can slide through an open gate to an empty hex`, () => {
